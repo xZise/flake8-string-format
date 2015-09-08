@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 """Extension for flake8 to test for unindexed format parameters."""
-from __future__ import unicode_literals
+from __future__ import print_function, unicode_literals
 
 import re
 import sys

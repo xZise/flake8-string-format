@@ -8,6 +8,7 @@ python:
   - "nightly"
 
 script:
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.6" ]]; then pip install unittest2 ; fi
   - python setup.py test
   - if [[ "$TRAVIS_PYTHON_VERSION" != "nightly" ]]; then coverage run setup.py test ; fi
 
