@@ -5,7 +5,12 @@ Unindexed parameter checker
    :alt: Build Status
    :target: https://travis-ci.org/xZise/flake8-indexed-format
 
+.. image:: http://codecov.io/github/xZise/flake8-indexed-format/coverage.svg?branch=master
+   :alt: Coverage Status
+   :target: http://codecov.io/github/xZise/flake8-indexed-format?branch=master
+
 .. image:: https://badge.fury.io/py/flake8-indexed-format.svg
+   :alt: Pypi Entry
    :target: https://pypi.python.org/pypi/flake8-indexed-format
 
 An extension for ``flake8`` to check if the code is using unindexed parameters
