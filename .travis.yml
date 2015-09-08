@@ -6,6 +6,13 @@ python:
   - "3.5-dev"
   - "nightly"
 
-script: python setup.py test
+script:
+  - python setup.py test
+  - if [[ "$TRAVIS_PYTHON_VERSION" != "nightly" ]]; then coverage run setup.py test ; fi
+
 notifications:
   email: false
+before_install:
+  - pip install codecov
+after_success:
+  - codecov
