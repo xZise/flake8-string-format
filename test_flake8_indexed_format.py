@@ -3,6 +3,7 @@ from __future__ import print_function
 import ast
 import codecs
 import itertools
+import optparse
 import os
 import re
 import sys
@@ -52,6 +53,7 @@ class TestCaseBase(unittest.TestCase):
                           '{0}:{1}'.format(line, offset))
             self.assertEqual(line, pos[0])
             self.assertEqual(offset, pos[1])
+        self.assertRaises(StopIteration, next, positions)
 
 
 class SimpleImportTestCase(TestCaseBase):
@@ -151,6 +153,60 @@ class TestMainOutdated(TestPatchedPrint, TestCaseBase):
         self.assertIs(flake8_indexed_format.main([]), False)
         self.assertEqual(self.messages,
                          ['argparse is required for the standalone version.'])
+
+
+class TestFlake8Argparse(unittest.TestCase):
+
+    class DummyClass(flake8_indexed_format.Flake8Argparse):
+
+        @classmethod
+        def add_arguments(cls, parser):
+            parser.add_argument('-c', '--config', '--other', action='store_true')
+            parser.add_argument('-n', '--normal')
+            parser.add_argument('--cfg', action='store_true')
+
+        @classmethod
+        def parse_options(cls, options):
+            cls.target.options = options
+
+        def run(self):
+            return
+            yield
+
+    def run_execute(self, parameters, config, cfg, normal, ignore, files):
+        flake8_indexed_format.execute(self.DummyClass, parameters,
+                                      set(['PI31', 'PI41', 'E577', 'E215']))
+        self.assertIs(self.options.config, config)
+        self.assertIs(self.options.cfg, cfg)
+        if normal is None:
+            self.assertIsNone(self.options.normal)
+        else:
+            self.assertEqual(self.options.normal)
+        assert self.options.normal is normal
+        self.assertEqual(self.options.ignore, ignore)
+        self.assertEqual(self.options.files, files)
+
+    def setUp(self):
+        super(TestFlake8Argparse, self).setUp()
+        self.DummyClass.target = self
+
+    def test_add_options(self):
+        parser = optparse.OptionParser()
+        parser.config_options = []
+        self.DummyClass.add_options(parser)
+        config_option = parser.get_option('-c')
+        self.assertIsInstance(config_option, optparse.Option)
+        self.assertIs(parser.get_option('--config'), config_option)
+        self.assertIs(parser.get_option('--other'), config_option)
+        self.assertEqual(parser.config_options, ['config', 'cfg'])
+
+    def test_execute(self):
+        if isinstance(flake8_indexed_format.argparse, ImportError):
+            raise unittest.SkipTest('argparse is not available')
+        self.run_execute(['/dev/null'],
+                         False, False, None, set(), ['/dev/null'])
+        self.run_execute(['--ignore=PI41,E', '/dev/null'],
+                         False, False, None, set(['PI41', 'E577', 'E215']), ['/dev/null'])
 
 
 if __name__ == '__main__':

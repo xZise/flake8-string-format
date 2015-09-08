@@ -30,7 +30,7 @@ class Flake8Argparse(object):
         class Wrapper(object):
             def add_argument(self, *args, **kwargs):
                 # flake8 uses config_options to handle stuff like 'store_true'
-                if kwargs['action'] == 'store_true':
+                if kwargs.get('action') == 'store_true':
                     for opt in args:
                         if opt.startswith('--'):
                             break
