@@ -14,9 +14,9 @@ except ImportError as e:
 if sys.version_info[0] > 2:
     unicode = str
 
-from ast import NodeVisitor, PyCF_ONLY_AST
+from ast import NodeVisitor, PyCF_ONLY_AST, Bytes, Str
 
-__version__ = '0.1.0dev1'
+__version__ = '0.1.0dev2'
 
 
 class Flake8Argparse(object):
@@ -108,15 +108,65 @@ def execute(plugin_class, args, choices):
 
 class TextVisitor(NodeVisitor):
 
+    """
+    Node visitor for bytes and str instances.
+
+    It tries to detect docstrings as string of the first expression of each
+    module, class or function.
+    """
+
+    OUTSIDE = 0
+    IN_MODULE = 1
+    IN_CLASS = 2
+    IN_FUNCTION = 3
+    IN_ARGUMENTS = 4
+
     def __init__(self):
         super(TextVisitor, self).__init__()
         self.nodes = []
+        self._docstring = self.OUTSIDE
 
     def visit_Str(self, node):
         self.nodes += [node]
 
     def visit_Bytes(self, node):
         self.nodes += [node]
+
+    def visit_Expr(self, node):
+        if (self._docstring in (self.IN_MODULE, self.IN_CLASS, self.IN_FUNCTION) and
+                isinstance(node.value, (Str, Bytes))):
+            node.value.is_docstring = True
+        super(TextVisitor, self).generic_visit(node)
+        self._docstring = self.OUTSIDE
+
+    def visit_Module(self, node):
+        self._docstring = self.IN_MODULE
+        super(TextVisitor, self).generic_visit(node)
+        self._docstring = self.OUTSIDE
+
+    def visit_ClassDef(self, node):
+        self._docstring = self.IN_CLASS
+        super(TextVisitor, self).generic_visit(node)
+        self._docstring = self.OUTSIDE
+
+    def visit_FunctionDef(self, node):
+        self._docstring = self.IN_FUNCTION
+        super(TextVisitor, self).generic_visit(node)
+        self._docstring = self.OUTSIDE
+
+    def visit_arguments(self, node):
+        in_func = self._docstring == self.IN_FUNCTION
+        if in_func:
+            self._docstring = self.IN_ARGUMENTS
+        super(TextVisitor, self).generic_visit(node)
+        if in_func:
+            assert self._docstring == self.IN_ARGUMENTS
+            self._docstring = self.IN_FUNCTION
+
+    def generic_visit(self, node):
+        if self._docstring != self.IN_ARGUMENTS:
+            self._docstring = 0
+        super(TextVisitor, self).generic_visit(node)
 
 
 class UnindexedParameterChecker(Flake8Argparse):
@@ -128,7 +178,10 @@ class UnindexedParameterChecker(Flake8Argparse):
     name = 'flake8-unindexed-parameter'
 
     def _generate_error(self, node):
-        msg = 'P101 str does contain unindexed parameters'
+        if getattr(node, 'is_docstring', False):
+            msg = 'P102 docstring does contain unindexed parameters'
+        else:
+            msg = 'P101 str does contain unindexed parameters'
         return node.lineno, node.col_offset, msg, type(self)
 
     def run(self):

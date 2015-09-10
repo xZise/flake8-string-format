@@ -60,14 +60,17 @@ Error codes
 
 This plugin is using the following error code:
 
-+------+---------------------------------------+
-| P101 | str does contain unindexed parameters |
-+------+---------------------------------------+
++------+---------------------------------------------+
+| P101 | str does contain unindexed parameters       |
++------+---------------------------------------------+
+| P102 | docstring does contain unindexed parameters |
++------+---------------------------------------------+
 
 
 Changes
 -------
 
-0.1.0 - 2015-09-08
+0.1.0 - 2015-09-10
 ``````````````````
-* First release
+* Detect unindexed parameters in all strings
+* Separate error code for docstrings
