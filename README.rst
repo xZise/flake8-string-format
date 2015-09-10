@@ -27,7 +27,7 @@ Standalone script
 
 The checker can be used directly::
 
-  $ python -m flake8_indexed_format some_file.py
+  $ python -m flake8_string_format some_file.py
   some_file.py:1:1: P101 str does contain unindexed parameters
 
 Even though ``flake8`` still uses ``optparse`` this script in standalone mode
@@ -37,11 +37,11 @@ is using ``argparse``.
 Plugin for Flake8
 -----------------
 
-When both ``flake8 2.0`` and ``flake8-indexed-format`` are installed, the plugin
+When both ``flake8 2.0`` and ``flake8-string-format`` are installed, the plugin
 is available in ``flake8``::
 
   $ flake8 --version
-  2.0 (pep8: 1.4.2, flake8-indexed-format: 0.2.0, pyflakes: 0.6.1)
+  2.0 (pep8: 1.4.2, flake8-string-format: 0.2.0, pyflakes: 0.6.1)
 
 Via ``--ignore`` it's possible to ignore unindxed parameters::
 
