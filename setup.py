@@ -17,7 +17,7 @@ def get_long_description():
 
 
 setup(
-    name='flake8-indexed-format',
+    name='flake8-string-format',
     version=get_version(),
     description='unindexed format parameter checker, plugin for flake8',
     long_description=get_long_description(),
@@ -25,13 +25,13 @@ setup(
     install_requires=['flake8'],
     maintainer='Fabian Neundorf',
     maintainer_email='CommodoreFabianus@gmx.de',
-    url='https://github.com/xZise/flake8-indexed-format',
+    url='https://github.com/xZise/flake8-string-format',
     license='MIT License',
     py_modules=['flake8_indexed_format'],
     zip_safe=False,
     entry_points={
         'flake8.extension': [
-            'flake8-indexed-format = flake8_indexed_format:UnindexedParameterChecker',
+            'flake8-string-format = flake8_indexed_format:UnindexedParameterChecker',
         ],
     },
     test_suite='test_flake8_indexed_format',
