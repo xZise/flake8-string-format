@@ -14,7 +14,7 @@ except ImportError as e:
 if sys.version_info[0] > 2:
     unicode = str
 
-from ast import NodeVisitor, PyCF_ONLY_AST, Bytes, Str
+from ast import NodeVisitor, PyCF_ONLY_AST, Bytes, Str, Expr
 
 __version__ = '0.1.0dev2'
 
@@ -115,16 +115,9 @@ class TextVisitor(NodeVisitor):
     module, class or function.
     """
 
-    OUTSIDE = 0
-    IN_MODULE = 1
-    IN_CLASS = 2
-    IN_FUNCTION = 3
-    IN_ARGUMENTS = 4
-
     def __init__(self):
         super(TextVisitor, self).__init__()
         self.nodes = []
-        self._docstring = self.OUTSIDE
 
     def visit_Str(self, node):
         self.nodes += [node]
@@ -132,41 +125,39 @@ class TextVisitor(NodeVisitor):
     def visit_Bytes(self, node):
         self.nodes += [node]
 
-    def visit_Expr(self, node):
-        if (self._docstring in (self.IN_MODULE, self.IN_CLASS, self.IN_FUNCTION) and
-                isinstance(node.value, (Str, Bytes))):
-            node.value.is_docstring = True
-        super(TextVisitor, self).generic_visit(node)
-        self._docstring = self.OUTSIDE
+    def _visit_definition(self, node):
+        # Manually traverse class or function definition
+        # * Handle decorators normally
+        # * Use special check for body content
+        # * Don't handle the rest (e.g. bases)
+        for decorator in node.decorator_list:
+            self.visit(decorator)
+        self._visit_body(node)
+
+    def _visit_body(self, node):
+        """
+        Traverse the body of the node manually.
+
+        If the first ndoe is an expression which contains a string or bytes it
+        marks that as a docstring.
+        """
+        if (node.body and isinstance(node.body[0], Expr) and
+                isinstance(node.body[0].value, (Str, Bytes))):
+            node.body[0].value.is_docstring = True
+
+        for sub_node in node.body:
+            self.visit(sub_node)
 
     def visit_Module(self, node):
-        self._docstring = self.IN_MODULE
-        super(TextVisitor, self).generic_visit(node)
-        self._docstring = self.OUTSIDE
+        self._visit_body(node)
 
     def visit_ClassDef(self, node):
-        self._docstring = self.IN_CLASS
-        super(TextVisitor, self).generic_visit(node)
-        self._docstring = self.OUTSIDE
+        # Skipped nodes: ('name', 'bases', 'keywords', 'starargs', 'kwargs')
+        self._visit_definition(node)
 
     def visit_FunctionDef(self, node):
-        self._docstring = self.IN_FUNCTION
-        super(TextVisitor, self).generic_visit(node)
-        self._docstring = self.OUTSIDE
-
-    def visit_arguments(self, node):
-        in_func = self._docstring == self.IN_FUNCTION
-        if in_func:
-            self._docstring = self.IN_ARGUMENTS
-        super(TextVisitor, self).generic_visit(node)
-        if in_func:
-            assert self._docstring == self.IN_ARGUMENTS
-            self._docstring = self.IN_FUNCTION
-
-    def generic_visit(self, node):
-        if self._docstring != self.IN_ARGUMENTS:
-            self._docstring = 0
-        super(TextVisitor, self).generic_visit(node)
+        # Skipped nodes: ('name', 'args', 'returns')
+        self._visit_definition(node)
 
 
 class UnindexedParameterChecker(Flake8Argparse):
