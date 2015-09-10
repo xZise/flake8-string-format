@@ -97,7 +97,7 @@ This plugin is using the following error codes:
 Changes
 -------
 
-0.2.0 - 2015-09-10
+0.2.0 - 2015-09-11
 ``````````````````
 * Instead of using a regex it's trying to parse it using Python's parser
 * This result can also be used now to verify that enough parameters are given

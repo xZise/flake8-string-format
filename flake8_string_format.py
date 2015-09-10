@@ -269,18 +269,26 @@ class StringFormatChecker(Flake8Argparse):
                     else:
                         names.add(field_match.group(1))
 
+                if sys.version_info < (3, 5):
+                    has_kwargs = bool(call.kwargs)
+                    has_starargs = bool(call.starargs)
+                else:
+                    has_kwargs = any(kw.arg is None for kw in call.keywords)
+                    has_starargs = any(isinstance(arg, ast.Starred)
+                                       for arg in call.args)
+
                 # if starargs or kwargs is not None, it can't count the
                 # parameters but at least check if the args are used
-                if call.kwargs:
+                if has_kwargs:
                     if not names:
                         # No names but kwargs
                         yield self._generate_error(call, 203)
-                if call.starargs:
+                if has_starargs:
                     if not numbers:
                         # No numbers but args
                         yield self._generate_error(call, 204)
 
-                if not call.kwargs and not call.starargs:
+                if not has_kwargs and not has_starargs:
                     # can actually verify numbers and names
                     keywords = set(keyword.arg for keyword in call.keywords)
                     num_args = len(call.args)
