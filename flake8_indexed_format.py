@@ -194,7 +194,7 @@ class UnindexedParameterChecker(Flake8Argparse):
 
 
 def main(args):
-    choices = set(['P101'])
+    choices = set(['P101', 'P102'])
     return execute(UnindexedParameterChecker, args, choices)
 
 
