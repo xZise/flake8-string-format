@@ -5,7 +5,7 @@ from setuptools import setup
 
 
 def get_version():
-    with open('flake8_indexed_format.py') as f:
+    with open('flake8_string_format.py') as f:
         for line in f:
             if line.startswith('__version__'):
                 return eval(line.split('=')[-1])
@@ -19,7 +19,7 @@ def get_long_description():
 setup(
     name='flake8-string-format',
     version=get_version(),
-    description='unindexed format parameter checker, plugin for flake8',
+    description='string format checker, plugin for flake8',
     long_description=get_long_description(),
     keywords='flake8 format',
     install_requires=['flake8'],
@@ -27,14 +27,14 @@ setup(
     maintainer_email='CommodoreFabianus@gmx.de',
     url='https://github.com/xZise/flake8-string-format',
     license='MIT License',
-    py_modules=['flake8_indexed_format'],
+    py_modules=['flake8_string_format'],
     zip_safe=False,
     entry_points={
         'flake8.extension': [
-            'flake8-string-format = flake8_indexed_format:UnindexedParameterChecker',
+            'flake8-string-format = flake8_string_format:StringFormatChecker',
         ],
     },
-    test_suite='test_flake8_indexed_format',
+    test_suite='test_flake8_string_format',
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Console',

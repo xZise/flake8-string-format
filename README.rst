@@ -1,5 +1,5 @@
-Unindexed parameter checker
-===========================
+String format parameter checker
+===============================
 
 .. image:: https://secure.travis-ci.org/xZise/flake8-indexed-format.png?branch=master
    :alt: Build Status
@@ -13,8 +13,13 @@ Unindexed parameter checker
    :alt: Pypi Entry
    :target: https://pypi.python.org/pypi/flake8-indexed-format
 
-An extension for ``flake8`` to check if the code is using unindexed parameters
-used in ``str.format`` as that isn't support in Python 2.6.
+An extension for ``flake8`` to check the strings and parameters using
+``str.format``. It checks all strings whether they use numbered parameters with
+an implicit index which isn't support in Python 2.6.
+
+In all instances of ``'…'.format(…)`` it will also check whether there are
+enough parameters given. If the format call uses variable arguments, it'll just
+check whether the right types of arguments are present.
 
 
 Standalone script
@@ -36,7 +41,7 @@ When both ``flake8 2.0`` and ``flake8-indexed-format`` are installed, the plugin
 is available in ``flake8``::
 
   $ flake8 --version
-  2.0 (pep8: 1.4.2, flake8-indexed-format: 0.1.0, pyflakes: 0.6.1)
+  2.0 (pep8: 1.4.2, flake8-indexed-format: 0.2.0, pyflakes: 0.6.1)
 
 Via ``--ignore`` it's possible to ignore unindxed parameters::
 
@@ -58,17 +63,42 @@ mimics flake8's ignore parameter.
 Error codes
 -----------
 
-This plugin is using the following error code:
+This plugin is using the following error codes:
 
-+------+---------------------------------------------+
-| P101 | str does contain unindexed parameters       |
-+------+---------------------------------------------+
-| P102 | docstring does contain unindexed parameters |
-+------+---------------------------------------------+
++--------------------------------------------------------------------+
+| Presence of implicit parameters                                    |
++------+-------------------------------------------------------------+
+| P101 | string does contain unindexed parameters                    |
++------+-------------------------------------------------------------+
+| P102 | docstring does contain unindexed parameters                 |
++------+-------------------------------------------------------------+
+| P103 | format call uses implicit and explicit indexes together     |
++------+-------------------------------------------------------------+
+| Missing values in the parameters                                   |
++------+-------------------------------------------------------------+
+| P201 | format call uses to large index (INDEX)                     |
++------+-------------------------------------------------------------+
+| P202 | format call uses missing keyword (KEYWORD)                  |
++------+-------------------------------------------------------------+
+| P203 | format call uses keyword arguments but no named entries     |
++------+-------------------------------------------------------------+
+| P204 | format call uses variable arguments but no numbered entries |
++------+-------------------------------------------------------------+
+| Unused values in the parameters                                    |
++------+-------------------------------------------------------------+
+| P301 | format call provides unused index (INDEX)                   |
++------+-------------------------------------------------------------+
+| P302 | format call provides unused keyword (KEYWORD)               |
++------+-------------------------------------------------------------+
 
 
 Changes
 -------
+
+0.2.0 - 2015-09-10
+``````````````````
+* Instead of using a regex it's trying to parse it using Python's parser
+* This result can also be used now to verify that enough parameters are given
 
 0.1.0 - 2015-09-10
 ``````````````````

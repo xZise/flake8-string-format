@@ -14,7 +14,7 @@ if sys.version_info < (2, 7):
 else:
     import unittest
 
-import flake8_indexed_format
+import flake8_string_format
 
 
 def generate_code():
@@ -47,7 +47,7 @@ class TestCaseBase(unittest.TestCase):
                           '{0}:{1}'.format(line, offset))
             if pos[0] == 101:
                 self.assertEqual(
-                    msg, 'P101 str does contain unindexed parameters')
+                    msg, 'P101 string does contain unindexed parameters')
             else:
                 print(pos)
                 self.assertEqual(
@@ -63,11 +63,11 @@ class SimpleImportTestCase(TestCaseBase):
         def iterator():
             for line, char, msg, origin in checker.run():
                 yield line, char, msg
-                self.assertIs(origin, flake8_indexed_format.UnindexedParameterChecker)
+                self.assertIs(origin, flake8_string_format.StringFormatChecker)
 
         code, positions = generate_code()
         tree = ast.parse(code)
-        checker = flake8_indexed_format.UnindexedParameterChecker(tree, 'fn')
+        checker = flake8_string_format.StringFormatChecker(tree, 'fn')
         self.run_test_pos(positions, iterator())
 
 
@@ -78,18 +78,18 @@ class TestPatchedPrint(unittest.TestCase):
 
     def setUp(self):
         super(TestPatchedPrint, self).setUp()
-        flake8_indexed_format.print = self.patched_print
+        flake8_string_format.print = self.patched_print
         self.messages = []
 
     def tearDown(self):
-        flake8_indexed_format.print = print
+        flake8_string_format.print = print
         super(TestPatchedPrint, self).tearDown()
 
 
 class TestMainPrintPatched(TestPatchedPrint, TestCaseBase):
 
     def setUp(self):
-        if isinstance(flake8_indexed_format.argparse, ImportError):
+        if isinstance(flake8_string_format.argparse, ImportError):
             raise unittest.SkipTest('argparse is not available')
         super(TestMainPrintPatched, self).setUp()
 
@@ -113,7 +113,7 @@ class TestMainPrintPatched(TestPatchedPrint, TestCaseBase):
         try:
             with codecs.open(self.tmp_file, 'w', 'utf-8') as f:
                 f.write(code)
-            flake8_indexed_format.main(parameters + [self.tmp_file])
+            flake8_string_format.main(parameters + [self.tmp_file])
         finally:
             os.remove(self.tmp_file)
         self.run_test_pos(positions, self.iterator())
@@ -125,7 +125,7 @@ class TestMainPrintPatched(TestPatchedPrint, TestCaseBase):
         self.run_test('P101,P1')
 
     def test_main_invalid(self):
-        self.assertRaises(SystemExit, flake8_indexed_format.main,
+        self.assertRaises(SystemExit, flake8_string_format.main,
             ['--ignore', 'foobar', '/dev/null'])
 
 
@@ -133,32 +133,32 @@ class TestMainOutdated(TestPatchedPrint, TestCaseBase):
 
     def setUp(self):
         super(TestMainOutdated, self).setUp()
-        self._old_argparse = flake8_indexed_format.argparse
-        flake8_indexed_format.argparse = ImportError()
+        self._old_argparse = flake8_string_format.argparse
+        flake8_string_format.argparse = ImportError()
 
     def tearDown(self):
-        flake8_indexed_format.argparse = self._old_argparse
+        flake8_string_format.argparse = self._old_argparse
         super(TestMainOutdated, self).setUp()
 
     def test_create_parser(self):
-        self.assertIs(flake8_indexed_format.create_parser(None, None), False)
+        self.assertIs(flake8_string_format.create_parser(None, None), False)
         self.assertEqual(self.messages,
                          ['argparse is required for the standalone version.'])
 
     def test_execute(self):
-        self.assertIs(flake8_indexed_format.execute(None, None, None), False)
+        self.assertIs(flake8_string_format.execute(None, None, None), False)
         self.assertEqual(self.messages,
                          ['argparse is required for the standalone version.'])
 
     def test_main(self):
-        self.assertIs(flake8_indexed_format.main([]), False)
+        self.assertIs(flake8_string_format.main([]), False)
         self.assertEqual(self.messages,
                          ['argparse is required for the standalone version.'])
 
 
 class TestFlake8Argparse(unittest.TestCase):
 
-    class DummyClass(flake8_indexed_format.Flake8Argparse):
+    class DummyClass(flake8_string_format.Flake8Argparse):
 
         @classmethod
         def add_arguments(cls, parser):
@@ -175,7 +175,7 @@ class TestFlake8Argparse(unittest.TestCase):
             yield
 
     def run_execute(self, parameters, config, cfg, normal, ignore, files):
-        flake8_indexed_format.execute(self.DummyClass, parameters,
+        flake8_string_format.execute(self.DummyClass, parameters,
                                       set(['PI31', 'PI41', 'E577', 'E215']))
         self.assertIs(self.options.config, config)
         self.assertIs(self.options.cfg, cfg)
@@ -202,7 +202,7 @@ class TestFlake8Argparse(unittest.TestCase):
         self.assertEqual(parser.config_options, ['config', 'cfg'])
 
     def test_execute(self):
-        if isinstance(flake8_indexed_format.argparse, ImportError):
+        if isinstance(flake8_string_format.argparse, ImportError):
             raise unittest.SkipTest('argparse is not available')
         self.run_execute(['/dev/null'],
                          False, False, None, set(), ['/dev/null'])
