@@ -3,6 +3,7 @@
 """Extension for flake8 to test for unindexed format parameters."""
 from __future__ import print_function, unicode_literals
 
+import ast
 import re
 import sys
 
@@ -14,7 +15,7 @@ except ImportError as e:
 if sys.version_info[0] > 2:
     unicode = str
 
-from ast import NodeVisitor, PyCF_ONLY_AST, Bytes, Str, Expr
+from ast import NodeVisitor, PyCF_ONLY_AST, Expr
 
 __version__ = '0.1.0'
 
@@ -119,6 +120,12 @@ class TextVisitor(NodeVisitor):
         super(TextVisitor, self).__init__()
         self.nodes = []
 
+    def is_base_string(self, node):
+        typ = (ast.Str,)
+        if sys.version_info[0] > 2:
+            typ += (ast.Bytes,)
+        return isinstance(node, typ)
+
     def visit_Str(self, node):
         self.nodes += [node]
 
@@ -142,7 +149,7 @@ class TextVisitor(NodeVisitor):
         marks that as a docstring.
         """
         if (node.body and isinstance(node.body[0], Expr) and
-                isinstance(node.body[0].value, (Str, Bytes))):
+                self.is_base_string(node.body[0].value)):
             node.body[0].value.is_docstring = True
 
         for sub_node in node.body:
