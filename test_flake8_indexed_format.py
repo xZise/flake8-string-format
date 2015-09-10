@@ -18,7 +18,7 @@ import flake8_indexed_format
 
 
 def generate_code():
-    code = []
+    code = ['dummy = "line"']
     positions = []
     for variant in itertools.product(
             ['', '#', '    '], ['', 'u', 'b'], ['', '0', 'param'], ['', ':03'],
@@ -28,31 +28,32 @@ def generate_code():
             code += ['if True:']
         code += ['{0}{1}"{4}{{{2}{3}}}{5}"'.format(*variant)]
         if not variant[2] and not variant[0].strip().startswith('#'):
-            positions += [(len(code), 0 if not indented else 4)]
+            positions += [(101, len(code), 0 if not indented else 4)]
     return '\n'.join(code), positions
 
 
 class TestCaseBase(unittest.TestCase):
 
     def run_test(self, iterator):
-        self.run_test_code(*generate_code(), iterator=iterator)
+        self.run_test_ps(generate_code()[1], iterator=iterator)
 
-    def run_test_code(self, code, positions, iterator):
-        tree = ast.parse(code)
-        self.run_test_tree(tree, positions, iterator)
-
-    def run_test_tree(self, tree, positions, iterator):
+    def run_test_pos(self, positions, iterator):
         positions = iter(positions)
         for line, offset, msg in iterator:
-            match = re.match('P101 str does contain unindexed parameters', msg)
-            self.assertIsNotNone(match)
             try:
                 pos = next(positions)
             except StopIteration:
                 self.fail('no more positions but found '
                           '{0}:{1}'.format(line, offset))
-            self.assertEqual(line, pos[0])
-            self.assertEqual(offset, pos[1])
+            if pos[0] == 101:
+                self.assertEqual(
+                    msg, 'P101 str does contain unindexed parameters')
+            else:
+                print(pos)
+                self.assertEqual(
+                    msg, 'P102 docstring does contain unindexed parameters')
+            self.assertEqual(line, pos[1])
+            self.assertEqual(offset, pos[2])
         self.assertRaises(StopIteration, next, positions)
 
 
@@ -67,7 +68,7 @@ class SimpleImportTestCase(TestCaseBase):
         code, positions = generate_code()
         tree = ast.parse(code)
         checker = flake8_indexed_format.UnindexedParameterChecker(tree, 'fn')
-        self.run_test_tree(tree, positions, iterator())
+        self.run_test_pos(positions, iterator())
 
 
 class TestPatchedPrint(unittest.TestCase):
@@ -115,7 +116,7 @@ class TestMainPrintPatched(TestPatchedPrint, TestCaseBase):
             flake8_indexed_format.main(parameters + [self.tmp_file])
         finally:
             os.remove(self.tmp_file)
-        self.run_test_code(code, positions, self.iterator())
+        self.run_test_pos(positions, self.iterator())
 
     def test_main(self):
         self.run_test()

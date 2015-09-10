@@ -16,7 +16,7 @@ if sys.version_info[0] > 2:
 
 from ast import NodeVisitor, PyCF_ONLY_AST, Bytes, Str, Expr
 
-__version__ = '0.1.0dev2'
+__version__ = '0.1.0'
 
 
 class Flake8Argparse(object):
@@ -138,7 +138,7 @@ class TextVisitor(NodeVisitor):
         """
         Traverse the body of the node manually.
 
-        If the first ndoe is an expression which contains a string or bytes it
+        If the first node is an expression which contains a string or bytes it
         marks that as a docstring.
         """
         if (node.body and isinstance(node.body[0], Expr) and
