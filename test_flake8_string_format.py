@@ -24,11 +24,20 @@ def generate_code():
             ['', '#', '    '], ['', 'u', 'b'], ['', '0', 'param'], ['', ':03'],
             ['', 'Before'], ['', 'After']):
         indented = variant[0].startswith(' ')
-        if indented:
-            code += ['if True:']
-        code += ['{0}{1}"{4}{{{2}{3}}}{5}"'.format(*variant)]
-        if not variant[2] and not variant[0].strip().startswith('#'):
-            positions += [(101, len(code), 0 if not indented else 4)]
+        for use_format in [False, True]:
+            if use_format:
+                fmt_code = '.format({0}42)'
+                if variant[2] == 'param':
+                    fmt_code = fmt_code.format('param=')
+                else:
+                    fmt_code = fmt_code.format('')
+            else:
+                fmt_code = ''
+            if indented:
+                code += ['if True:']
+            code += ['{0}{1}"{4}{{{2}{3}}}{5}"{fmt}'.format(*variant, fmt=fmt_code)]
+            if not variant[2] and not variant[0].strip().startswith('#'):
+                positions += [(101 if use_format else 103, len(code), 0 if not indented else 4)]
     return '\n'.join(code), positions
 
 
@@ -44,14 +53,18 @@ class TestCaseBase(unittest.TestCase):
                 pos = next(positions)
             except StopIteration:
                 self.fail('no more positions but found '
-                          '{0}:{1}'.format(line, offset))
+                          '{0}:{1}: {2}'.format(line, offset, msg))
             if pos[0] == 101:
                 self.assertEqual(
-                    msg, 'P101 string does contain unindexed parameters')
-            else:
-                print(pos)
+                    msg, 'P101 format string does contain unindexed parameters')
+            elif pos[0] == 102:
                 self.assertEqual(
                     msg, 'P102 docstring does contain unindexed parameters')
+            elif pos[0] == 103:
+                self.assertEqual(
+                    msg, 'P103 other string does contain unindexed parameters')
+            else:
+                self.fail('Invalid pos {0} with msg {1}'.format(pos, msg))
             self.assertEqual(line, pos[1])
             self.assertEqual(offset, pos[2])
         self.assertRaises(StopIteration, next, positions)
@@ -100,11 +113,11 @@ class TestMainPrintPatched(TestPatchedPrint, TestCaseBase):
             yield int(line) - 2, int(char) - 1, msg
             self.assertEqual(fn, self.tmp_file)
 
-    def run_test(self, ignored=''):
+    def run_test(self, ignored='', is_ignored=lambda n: False):
         self.messages = []
         code, positions = generate_code()
         if ignored:
-            positions = []
+            positions = [pos for pos in positions if not is_ignored(pos[0])]
             parameters = ['--ignore', ignored]
         else:
             parameters = []
@@ -120,9 +133,9 @@ class TestMainPrintPatched(TestPatchedPrint, TestCaseBase):
 
     def test_main(self):
         self.run_test()
-        self.run_test('P1')
-        self.run_test('P101')
-        self.run_test('P101,P1')
+        self.run_test('P1', lambda n: n // 100 == 1)
+        self.run_test('P101', lambda n: n == 101)
+        self.run_test('P201,P1', lambda n: n // 100 == 1 or n == 201)
 
     def test_main_invalid(self):
         self.assertRaises(SystemExit, flake8_string_format.main,

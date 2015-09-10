@@ -28,7 +28,7 @@ Standalone script
 The checker can be used directly::
 
   $ python -m flake8_string_format some_file.py
-  some_file.py:1:1: P101 str does contain unindexed parameters
+  some_file.py:1:1: P101 format string does contain unindexed parameters
 
 Even though ``flake8`` still uses ``optparse`` this script in standalone mode
 is using ``argparse``.
@@ -47,7 +47,7 @@ Via ``--ignore`` it's possible to ignore unindxed parameters::
 
   $ flake8 some_file.py
   ...
-  some_file.py:1:1: P101 str does contain unindexed parameters
+  some_file.py:1:1: P101 format string does contain unindexed parameters
 
   $ flake8 --ignore P101 some_file.py
   ...
@@ -68,11 +68,11 @@ This plugin is using the following error codes:
 +--------------------------------------------------------------------+
 | Presence of implicit parameters                                    |
 +------+-------------------------------------------------------------+
-| P101 | string does contain unindexed parameters                    |
+| P101 | format string does contain unindexed parameters             |
 +------+-------------------------------------------------------------+
 | P102 | docstring does contain unindexed parameters                 |
 +------+-------------------------------------------------------------+
-| P103 | format call uses implicit and explicit indexes together     |
+| P103 | other string does contain unindexed parameters              |
 +------+-------------------------------------------------------------+
 | Missing values in the parameters                                   |
 +------+-------------------------------------------------------------+
@@ -83,6 +83,8 @@ This plugin is using the following error codes:
 | P203 | format call uses keyword arguments but no named entries     |
 +------+-------------------------------------------------------------+
 | P204 | format call uses variable arguments but no numbered entries |
++------+-------------------------------------------------------------+
+| P205 | format call uses implicit and explicit indexes together     |
 +------+-------------------------------------------------------------+
 | Unused values in the parameters                                    |
 +------+-------------------------------------------------------------+

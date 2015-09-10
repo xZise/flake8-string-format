@@ -119,6 +119,11 @@ class TextVisitor(ast.NodeVisitor):
         self.nodes = []
         self.calls = []
 
+    def _add_node(self, node):
+        if not hasattr(node, 'is_docstring'):
+            node.is_docstring = False
+        self.nodes += [node]
+
     def is_base_string(self, node):
         typ = (ast.Str,)
         if sys.version_info[0] > 2:
@@ -126,10 +131,10 @@ class TextVisitor(ast.NodeVisitor):
         return isinstance(node, typ)
 
     def visit_Str(self, node):
-        self.nodes += [node]
+        self._add_node(node)
 
     def visit_Bytes(self, node):
-        self.nodes += [node]
+        self._add_node(node)
 
     def _visit_definition(self, node):
         # Manually traverse class or function definition
@@ -182,20 +187,21 @@ class StringFormatChecker(Flake8Argparse):
     name = 'flake8-string-format'
 
     ERRORS = {
-        101: 'string does contain unindexed parameters',
+        101: 'format string does contain unindexed parameters',
         102: 'docstring does contain unindexed parameters',
-        103: 'format call uses implicit and explicit indexes together',
+        103: 'other string does contain unindexed parameters',
         201: 'format call uses to large index ({idx})',
         202: 'format call uses missing keyword ({kw})',
         203: 'format call uses keyword arguments but no named entries',
         204: 'format call uses variable arguments but no numbered entries',
+        205: 'format call uses implicit and explicit indexes together',
         301: 'format call provides unused index ({idx})',
         302: 'format call provides unused keyword ({kw})',
     }
 
     def _generate_unindexed(self, node):
         return self._generate_error(
-            node, 102 if getattr(node, 'is_docstring', False) else 101)
+            node, 102 if node.is_docstring else 103)
 
     def _generate_error(self, node, code, **params):
         msg = 'P{0} {1}'.format(code, self.ERRORS[code])
@@ -216,7 +222,7 @@ class StringFormatChecker(Flake8Argparse):
         explicit = False
         try:
             for literal, field, spec, conv in self._FORMATTER.parse(text):
-                if field is not None:
+                if field is not None and (conv is None or conv in 'rsa'):
                     if not field:
                         field = str(next(cnt))
                         implicit = True
@@ -239,7 +245,11 @@ class StringFormatChecker(Flake8Argparse):
         for node in visitor.nodes:
             fields, implicit, explicit = self.get_fields(node)
             if implicit:
-                yield self._generate_unindexed(node)
+                if node in call_map:
+                    assert not node.is_docstring
+                    yield self._generate_error(node, 101)
+                else:
+                    yield self._generate_unindexed(node)
 
             if node in call_map:
                 call = call_map[node]
@@ -292,7 +302,7 @@ class StringFormatChecker(Flake8Argparse):
                             yield self._generate_error(call, 302, kw=keyword)
 
                 if implicit and explicit:
-                    yield self._generate_error(call, 103)
+                    yield self._generate_error(call, 205)
 
 
 def main(args):
