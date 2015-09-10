@@ -208,20 +208,13 @@ class StringFormatChecker(Flake8Argparse):
         msg = msg.format(**params)
         return node.lineno, node.col_offset, msg, type(self)
 
-    def get_fields(self, node):
-        text = node.s
-        if sys.version_info[0] > 2 and isinstance(text, bytes):
-            try:
-                # TODO: Maybe decode using file encoding?
-                text = text.decode('ascii')
-            except UnicodeDecodeError as e:
-                text = ''
+    def get_fields(self, string):
         fields = set()
         cnt = itertools.count()
         implicit = False
         explicit = False
         try:
-            for literal, field, spec, conv in self._FORMATTER.parse(text):
+            for literal, field, spec, conv in self._FORMATTER.parse(string):
                 if field is not None and (conv is None or conv in 'rsa'):
                     if not field:
                         field = str(next(cnt))
@@ -243,7 +236,14 @@ class StringFormatChecker(Flake8Argparse):
         call_map = dict((call.func.value, call) for call in visitor.calls)
         assert not (set(call_map) - set(visitor.nodes))
         for node in visitor.nodes:
-            fields, implicit, explicit = self.get_fields(node)
+            text = node.s
+            if sys.version_info[0] > 2 and isinstance(text, bytes):
+                try:
+                    # TODO: Maybe decode using file encoding?
+                    text = text.decode('ascii')
+                except UnicodeDecodeError as e:
+                    continue
+            fields, implicit, explicit = self.get_fields(text)
             if implicit:
                 if node in call_map:
                     assert not node.is_docstring
