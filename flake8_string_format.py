@@ -181,7 +181,7 @@ class TextVisitor(ast.NodeVisitor):
 class StringFormatChecker(Flake8Argparse):
 
     _FORMATTER = Formatter()
-    FIELD_REGEX = re.compile(r'^(.*?)(\..*|\[.*\])?$')
+    FIELD_REGEX = re.compile(r'^((?:\s|.)*?)(\..*|\[.*\])?$')
 
     version = __version__
     name = 'flake8-string-format'
