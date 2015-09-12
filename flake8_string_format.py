@@ -269,13 +269,23 @@ class StringFormatChecker(Flake8Argparse):
                     else:
                         names.add(field_match.group(1))
 
+                keywords = set(keyword.arg for keyword in call.keywords)
+                num_args = len(call.args)
                 if sys.version_info < (3, 5):
                     has_kwargs = bool(call.kwargs)
                     has_starargs = bool(call.starargs)
                 else:
                     has_kwargs = any(kw.arg is None for kw in call.keywords)
-                    has_starargs = any(isinstance(arg, ast.Starred)
-                                       for arg in call.args)
+                    has_starargs = sum(1 for arg in call.args
+                                       if isinstance(arg, ast.Starred))
+                    # TODO: Determine when Starred is not at the end
+                    assert has_starargs <= 1
+                    assert isinstance(call.args, ast.Starred) is bool(has_starargs)
+
+                    if has_kwargs:
+                        keywords.discard(None)
+                    if has_starargs:
+                        num_args -= 1
 
                 # if starargs or kwargs is not None, it can't count the
                 # parameters but at least check if the args are used
@@ -290,9 +300,6 @@ class StringFormatChecker(Flake8Argparse):
 
                 if not has_kwargs and not has_starargs:
                     # can actually verify numbers and names
-                    keywords = set(keyword.arg for keyword in call.keywords)
-                    num_args = len(call.args)
-
                     for number in sorted(numbers):
                         if number >= num_args:
                             yield self._generate_error(call, 201, idx=number)
@@ -301,13 +308,14 @@ class StringFormatChecker(Flake8Argparse):
                         if name not in keywords:
                             yield self._generate_error(call, 202, kw=name)
 
-                    for arg in range(num_args):
-                        if arg not in numbers:
-                            yield self._generate_error(call, 301, idx=arg)
+                for arg in range(num_args):
+                    if arg not in numbers:
+                        yield self._generate_error(call, 301, idx=arg)
 
-                    for keyword in keywords:
-                        if keyword not in names:
-                            yield self._generate_error(call, 302, kw=keyword)
+                for keyword in keywords:
+                    if keyword not in names:
+                        yield self._generate_error(call, 302, kw=keyword)
+
 
                 if implicit and explicit:
                     yield self._generate_error(call, 205)
