@@ -93,14 +93,26 @@ This plugin is using the following error codes:
 | P302 | format call provides unused keyword (KEYWORD)               |
 +------+-------------------------------------------------------------+
 
+Python 2.6 support
+------------------
+
+Python 2.6 is only partially supported as it's using Python's capability to
+format a string. So if a string contains implicit parameters, it won't be
+detected as a parameter on Python 2.6 and thus it won't cause any P1XX errors.
+But it might still cause an error P301 when variable arguments aren't used.
+
+So if Python 2.6 compatibility is wished and thus implicit parameters aren't
+allowed, this plugin won't cause false positives.
+
 
 Changes
 -------
 
-0.2.0 - 2015-09-11
+0.2.0 - 2015-09-12
 ``````````````````
 * Instead of using a regex it's trying to parse it using Python's parser
 * This result can also be used now to verify that enough parameters are given
+* Limited Python 2.6 support
 
 0.1.0 - 2015-09-10
 ``````````````````
