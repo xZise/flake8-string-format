@@ -93,8 +93,30 @@ This plugin is using the following error codes:
 | P302 | format call provides unused keyword (KEYWORD)               |
 +------+-------------------------------------------------------------+
 
+
+Operation
+---------
+
+The plugin will go through all ``bytes``, ``str`` and ``unicode`` instances. If
+it encounters ``bytes`` instances on Python 3, it'll decode them using ASCII and
+if that fails it'll skip that entry.
+
+The strings are basically sorted into three types corresponding to the P1XX
+range. Only the format string can cause all errors while any other string can
+only cause the corresponding P1XX error.
+
+For this plugin all strings which are the first expression of the module or
+after a function or class defnition are considered docstrings.
+
+If the ``format`` function is used on a string, it will consider this a format
+string and will analyze the parameters of that call. If that call uses variable
+arguments, it cannot issue P201 and P202 as missing entries might be hidden in
+those variable arguments. P301 and P302 can still be checked for any argument
+which is defined statically.
+
+
 Python 2.6 support
-------------------
+``````````````````
 
 Python 2.6 is only partially supported as it's using Python's capability to
 format a string. So if a string contains implicit parameters, it won't be
