@@ -15,7 +15,7 @@ try:
 except ImportError as e:
     argparse = e
 
-__version__ = '0.2.0dev2'
+__version__ = '0.2.0'
 
 
 class Flake8Argparse(object):
