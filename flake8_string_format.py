@@ -15,7 +15,7 @@ try:
 except ImportError as e:
     argparse = e
 
-__version__ = '0.2.0'
+__version__ = '0.3.0dev0'
 
 
 class Flake8Argparse(object):
@@ -118,6 +118,7 @@ class TextVisitor(ast.NodeVisitor):
         super(TextVisitor, self).__init__()
         self.nodes = []
         self.calls = []
+        self.percent_entries = []
 
     def _add_node(self, node):
         if not hasattr(node, 'is_docstring'):
@@ -177,16 +178,28 @@ class TextVisitor(ast.NodeVisitor):
             self.calls += [node]
         super(TextVisitor, self).generic_visit(node)
 
+    def visit_BinOp(self, node):
+        if self.is_base_string(node.left):
+            self.percent_entries += [node]
+        super(TextVisitor, self).generic_visit(node)
+
 
 class StringFormatChecker(Flake8Argparse):
 
     _FORMATTER = Formatter()
     FIELD_REGEX = re.compile(r'^((?:\s|.)*?)(\..*|\[.*\])?$')
+    PERCENT_PARSER = re.compile(r'%(\([^)]+\))?(.*?)([diouxXeEfFgGcrsba%])')
+    PERCENT_FIELD_PARSER = re.compile(r'(?P<width>\*|\d+)?'
+                                      r'(?P<flags>[#0 +-]*)'
+                                      r'(?:\.(?P<precision>\*|\d+))?'
+                                      r'(?P<length>hlL)?'
+                                      r'(?P<invalid>.*)')
 
     version = __version__
     name = 'flake8-string-format'
 
     ERRORS = {
+        # format operation errors
         101: 'format string does contain unindexed parameters',
         102: 'docstring does contain unindexed parameters',
         103: 'other string does contain unindexed parameters',
@@ -197,6 +210,26 @@ class StringFormatChecker(Flake8Argparse):
         205: 'format call uses implicit and explicit indexes together',
         301: 'format call provides unused index ({idx})',
         302: 'format call provides unused keyword ({kw})',
+        # % operation errors
+        401: '% operation uses to many indexed parameters',
+        402: '% operation uses missing keyword ({kw})',
+        405: '% operation uses indexed and named parameters together',
+        411: '% operation provides to many indexes',
+        412: '% operation provides unused keyword ({kw})',
+        421: 'field in % operation uses an invalid specification',
+        # % operation warnings
+        501: 'using zero padding and left adjusted conversion flags',
+        502: 'using space-positive and sign-positive conversion flags',
+        503: 'multitple % operation conversion flags',
+        504: 'unnecessary type length in % operation',
+        505: 'deprecated % operation type',
+        506: 'unnecessary conversion flags in % operation for % type',
+        507: 'unnecessary precession in % operation for % type',
+        508: 'precision larger than width in % operation',
+        509: 'precision used with incompatible type in % operation',
+        # XXX: 'named % operation is missing the suffix',  # TODO
+        # XXX: 'unclosed bracket',  # TODO
+        # XXX: 'no alternate version for type',  # TODO
     }
 
     def _generate_unindexed(self, node):
@@ -230,11 +263,76 @@ class StringFormatChecker(Flake8Argparse):
         else:
             return fields, implicit, explicit
 
+    def parse_percent(self, text, node):
+        fields = set()
+        num_indexes = 0
+        for match in self.PERCENT_PARSER.finditer(text):
+            field_match = self.PERCENT_FIELD_PARSER.match(match.group(2))
+            if match.group(3) == '%':
+                if field_match.group('flags'):
+                    yield self._generate_error(node, 506)
+                if field_match.group('precision'):
+                    yield self._generate_error(node, 507)
+                continue
+            elif match.group(3) == 'u':
+                yield self._generate_error(node, 505)
+            if match.group(1):
+                fields.add(match.group(1)[1:-1])
+            else:
+                num_indexes += 1
+            if field_match.group('flags'):
+                flags = set(field_match.group('flags'))
+                if flags >= set('0-'):
+                    yield self._generate_error(node, 501)
+                if flags >= set(' +'):
+                    yield self._generate_error(node, 502)
+                if len(flags) < len(field_match.group('flags')):
+                    yield self._generate_error(node, 503)
+            if field_match.group('width') == '*':
+                num_indexes += 1
+            if field_match.group('precision'):
+                if field_match.group('precision') == '*':
+                    num_indexes += 1
+                else:
+                    if (field_match.group('width') != '*' and
+                            int(field_match.group('precision')) > int(field_match.group('width')) + 2):
+                        yield self._generate_error(node, 508)
+                    if match.group(3).lower() not in ('e', 'f', 'g'):
+                        yield self._generate_error(node, 509)
+            if field_match.group('length'):
+                yield self._generate_error(node, 504)
+            if field_match.group('invalid'):
+                yield self._generate_error(node, 421)
+        if isinstance(node.right, ast.Tuple):
+            if len(node.right.elts) > num_indexes:
+                yield self._generate_error(node, 411)
+            elif len(node.right.elts) < num_indexes:
+                yield self._generate_error(node, 401)
+        elif isinstance(node.right, ast.Dict):
+            available_keys = set()
+            for key in node.right.keys:
+                if isinstance(key, ast.Str):  # TODO: Bytes and Str
+                    if key.s not in fields:
+                        yield self._generate_error(node, 412, kw=key.s)
+                    elif available_keys is not None:
+                        available_keys.add(key.s)
+                else:
+                    available_keys = None
+            if available_keys is not None:
+                for key in sorted(fields - available_keys):
+                    yield self._generate_error(node, 402, kw=key)
+        if fields and num_indexes:
+            yield self._generate_error(node, 405)
+
     def run(self):
         visitor = TextVisitor()
         visitor.visit(self.tree)
         call_map = dict((call.func.value, call) for call in visitor.calls)
+        percent_map = dict((percent.left, percent)
+                           for percent in visitor.percent_entries)
         assert not (set(call_map) - set(visitor.nodes))
+        assert not (set(percent_map) - set(visitor.nodes))
+        maps = (call_map, percent_map)
         for node in visitor.nodes:
             text = node.s
             if sys.version_info[0] > 2 and isinstance(text, bytes):
@@ -250,6 +348,10 @@ class StringFormatChecker(Flake8Argparse):
                     yield self._generate_error(node, 101)
                 else:
                     yield self._generate_unindexed(node)
+
+            if node in percent_map:
+                for entry in self.parse_percent(text, percent_map[node]):
+                    yield entry
 
             if node in call_map:
                 call = call_map[node]
