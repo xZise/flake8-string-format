@@ -108,11 +108,12 @@ only cause the corresponding P1XX error.
 For this plugin all strings which are the first expression of the module or
 after a function or class defnition are considered docstrings.
 
-If the ``format`` function is used on a string, it will consider this a format
-string and will analyze the parameters of that call. If that call uses variable
-arguments, it cannot issue P201 and P202 as missing entries might be hidden in
-those variable arguments. P301 and P302 can still be checked for any argument
-which is defined statically.
+If the ``format`` method is used on a string or ``str.format`` with the string
+as the first parameter, it will consider this a format string and will analyze
+the parameters of that call. If that call uses variable arguments, it cannot
+issue P201 and P202 as missing entries might be hidden in those variable
+arguments. P301 and P302 can still be checked for any argument which is defined
+statically.
 
 
 Python 2.6 support
@@ -129,6 +130,10 @@ allowed, this plugin won't cause false positives.
 
 Changes
 -------
+
+0.2.1 - 2015-09-20
+``````````````````
+* Support ``str.format("…", …)`` calls and handle them like ``"…".format(…)``
 
 0.2.0 - 2015-09-12
 ``````````````````

@@ -15,7 +15,7 @@ try:
 except ImportError as e:
     argparse = e
 
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 
 
 class Flake8Argparse(object):
@@ -117,7 +117,7 @@ class TextVisitor(ast.NodeVisitor):
     def __init__(self):
         super(TextVisitor, self).__init__()
         self.nodes = []
-        self.calls = []
+        self.calls = {}
 
     def _add_node(self, node):
         if not hasattr(node, 'is_docstring'):
@@ -172,9 +172,13 @@ class TextVisitor(ast.NodeVisitor):
 
     def visit_Call(self, node):
         if (isinstance(node.func, ast.Attribute) and
-                node.func.attr == 'format' and
-                self.is_base_string(node.func.value)):
-            self.calls += [node]
+                node.func.attr == 'format'):
+            if self.is_base_string(node.func.value):
+                self.calls[node.func.value] = (node, False)
+            elif (isinstance(node.func.value, ast.Name) and
+                    node.func.value.id == 'str' and node.args and
+                    self.is_base_string(node.args[0])):
+                self.calls[node.args[0]] = (node, True)
         super(TextVisitor, self).generic_visit(node)
 
 
@@ -233,8 +237,7 @@ class StringFormatChecker(Flake8Argparse):
     def run(self):
         visitor = TextVisitor()
         visitor.visit(self.tree)
-        call_map = dict((call.func.value, call) for call in visitor.calls)
-        assert not (set(call_map) - set(visitor.nodes))
+        assert not (set(visitor.calls) - set(visitor.nodes))
         for node in visitor.nodes:
             text = node.s
             if sys.version_info[0] > 2 and isinstance(text, bytes):
@@ -245,14 +248,14 @@ class StringFormatChecker(Flake8Argparse):
                     continue
             fields, implicit, explicit = self.get_fields(text)
             if implicit:
-                if node in call_map:
+                if node in visitor.calls:
                     assert not node.is_docstring
                     yield self._generate_error(node, 101)
                 else:
                     yield self._generate_unindexed(node)
 
-            if node in call_map:
-                call = call_map[node]
+            if node in visitor.calls:
+                call, str_args = visitor.calls[node]
 
                 numbers = set()
                 names = set()
@@ -271,6 +274,8 @@ class StringFormatChecker(Flake8Argparse):
 
                 keywords = set(keyword.arg for keyword in call.keywords)
                 num_args = len(call.args)
+                if str_args:
+                    num_args -= 1
                 if sys.version_info < (3, 5):
                     has_kwargs = bool(call.kwargs)
                     has_starargs = bool(call.starargs)
