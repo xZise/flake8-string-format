@@ -25,9 +25,9 @@ def generate_code():
             ['', 'Before'], ['', 'After']):
         variant = list(variant)
         indented = variant[0].startswith(' ')
-        for use_format in [0, 1, 2]:
-            if use_format > 0:
-                if use_format == 1:
+        for use_format in [0, 1, 2, 3]:
+            if use_format > 1:
+                if use_format == 2:
                     fmt_code = '.format({0}42)'
                 else:
                     fmt_code = ', {0}42)'
@@ -38,11 +38,13 @@ def generate_code():
                     fmt_code = fmt_code.format('')
             else:
                 fmt_code = ''
+                if use_format == 1:
+                    variant[0] += 'buffer = '
             if indented:
                 code += ['if True:']
             code += ['{0}{1}"{4}{{{2}{3}}}{5}"{fmt}'.format(*variant, fmt=fmt_code)]
-            if not variant[2] and not variant[0].strip().startswith('#'):
-                positions += [(101 if use_format > 0 else 103, len(code), len(variant[0]))]
+            if not variant[2] and not variant[0].strip().startswith('#') and use_format > 0:
+                positions += [(101 if use_format > 1 else 103, len(code), len(variant[0]))]
     return '\n'.join(code), positions
 
 

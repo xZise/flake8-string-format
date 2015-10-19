@@ -15,7 +15,7 @@ try:
 except ImportError as e:
     argparse = e
 
-__version__ = '0.2.1'
+__version__ = '0.2.2.dev0'
 
 
 class Flake8Argparse(object):
@@ -155,9 +155,15 @@ class TextVisitor(ast.NodeVisitor):
         if (node.body and isinstance(node.body[0], ast.Expr) and
                 self.is_base_string(node.body[0].value)):
             node.body[0].value.is_docstring = True
+            self.visit(node.body[0].value)
 
         for sub_node in node.body:
             self.visit(sub_node)
+
+    def visit_Expr(self, node):
+        # Skip all Expr as they won't be formatted anyway
+        # docstrings are handled separately
+        pass
 
     def visit_Module(self, node):
         self._visit_body(node)
