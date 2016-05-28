@@ -124,28 +124,28 @@ class TestMainPrintPatched(TestPatchedPrint, TestCaseBase):
             self.assertEqual(fn, self.tmp_file)
 
     def run_test(self, ignored='', is_ignored=lambda n: False):
-        self.messages = []
         positions = dynamic_positions
         if ignored:
             positions = [pos for pos in positions if not is_ignored(pos[0])]
             parameters = ['--ignore', ignored]
         else:
             parameters = []
+        self.messages = []
+        flake8_string_format.main(parameters + [self.tmp_file])
+        self.run_test_pos(positions, self.iterator())
+
+    def test_main(self):
         code = '#!/usr/bin/python\n# -*- coding: utf-8 -*-\n' + dynamic_code
         self.tmp_file = tempfile.mkstemp()[1]
         try:
             with codecs.open(self.tmp_file, 'w', 'utf-8') as f:
                 f.write(code)
-            flake8_string_format.main(parameters + [self.tmp_file])
+            self.run_test()
+            self.run_test('P1', lambda n: n // 100 == 1)
+            self.run_test('P101', lambda n: n == 101)
+            self.run_test('P201,P1', lambda n: n // 100 == 1 or n == 201)
         finally:
             os.remove(self.tmp_file)
-        self.run_test_pos(positions, self.iterator())
-
-    def test_main(self):
-        self.run_test()
-        self.run_test('P1', lambda n: n // 100 == 1)
-        self.run_test('P101', lambda n: n == 101)
-        self.run_test('P201,P1', lambda n: n // 100 == 1 or n == 201)
 
     def test_main_invalid(self):
         self.assertRaises(SystemExit, flake8_string_format.main,
