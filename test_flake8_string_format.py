@@ -52,11 +52,10 @@ def generate_code():
                 positions += [(101 if use_format > 1 else 103, len(code), len(variant[0]))]
     return '\n'.join(code), positions
 
+dynamic_code, dynamic_positions = generate_code()
+
 
 class TestCaseBase(unittest.TestCase):
-
-    def run_test(self, iterator):
-        self.run_test_ps(generate_code()[1], iterator=iterator)
 
     def run_test_pos(self, positions, iterator):
         positions = iter(positions)
@@ -90,10 +89,9 @@ class SimpleImportTestCase(TestCaseBase):
                 yield line, char, msg
                 self.assertIs(origin, flake8_string_format.StringFormatChecker)
 
-        code, positions = generate_code()
-        tree = ast.parse(code)
+        tree = ast.parse(dynamic_code)
         checker = flake8_string_format.StringFormatChecker(tree, 'fn')
-        self.run_test_pos(positions, iterator())
+        self.run_test_pos(dynamic_positions, iterator())
 
 
 class TestPatchedPrint(unittest.TestCase):
@@ -127,13 +125,13 @@ class TestMainPrintPatched(TestPatchedPrint, TestCaseBase):
 
     def run_test(self, ignored='', is_ignored=lambda n: False):
         self.messages = []
-        code, positions = generate_code()
+        positions = dynamic_positions
         if ignored:
             positions = [pos for pos in positions if not is_ignored(pos[0])]
             parameters = ['--ignore', ignored]
         else:
             parameters = []
-        code = '#!/usr/bin/python\n# -*- coding: utf-8 -*-\n' + code
+        code = '#!/usr/bin/python\n# -*- coding: utf-8 -*-\n' + dynamic_code
         self.tmp_file = tempfile.mkstemp()[1]
         try:
             with codecs.open(self.tmp_file, 'w', 'utf-8') as f:
