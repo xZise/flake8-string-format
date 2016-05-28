@@ -26,6 +26,11 @@ def generate_code():
         variant = list(variant)
         indented = variant[0].startswith(' ')
         for use_format in [0, 1, 2, 3]:
+            # Formats:
+            #  0 = just string e.g.: "foobar"
+            #  1 = string assignment e.g.: buffer = "foobar"
+            #  2 = format as method call e.g.: "foobar".format()
+            #  3 = format as static function call e.g.: str.format("foobar")
             if use_format > 1:
                 if use_format == 2:
                     fmt_code = '.format({0}42)'
