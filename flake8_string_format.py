@@ -15,7 +15,7 @@ try:
 except ImportError as e:
     argparse = e
 
-__version__ = '0.2.2.dev0'
+__version__ = '0.2.2.dev1'
 
 
 class Flake8Argparse(object):
@@ -289,9 +289,9 @@ class StringFormatChecker(Flake8Argparse):
                     has_kwargs = None in keywords
                     has_starargs = sum(1 for arg in call.args
                                        if isinstance(arg, ast.Starred))
-                    # TODO: Determine when Starred is not at the end
+                    # TODO: Determine when Starred is not at the end, so make sure we know about it!
                     assert has_starargs <= 1
-                    assert isinstance(call.args, ast.Starred) is bool(has_starargs)
+                    assert not has_starargs or isinstance(call.args[-1], ast.Starred)
 
                     if has_kwargs:
                         keywords.discard(None)
