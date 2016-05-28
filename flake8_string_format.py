@@ -286,7 +286,7 @@ class StringFormatChecker(Flake8Argparse):
                     has_kwargs = bool(call.kwargs)
                     has_starargs = bool(call.starargs)
                 else:
-                    has_kwargs = any(kw.arg is None for kw in call.keywords)
+                    has_kwargs = None in keywords
                     has_starargs = sum(1 for arg in call.args
                                        if isinstance(arg, ast.Starred))
                     # TODO: Determine when Starred is not at the end
