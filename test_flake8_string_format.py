@@ -74,6 +74,15 @@ class TestCaseBase(unittest.TestCase):
             elif pos[0] == 103:
                 self.assertEqual(
                     msg, 'P103 other string does contain unindexed parameters')
+            elif pos[0] == 203:
+                self.assertEqual(
+                    msg, 'P203 format call uses keyword arguments but no named entries')
+            elif pos[0] == 204:
+                self.assertEqual(
+                    msg, 'P204 format call uses variable arguments but no numbered entries')
+            elif pos[0] == 205:
+                self.assertEqual(
+                    msg, 'P205 format call uses implicit and explicit indexes together')
             else:
                 self.fail('Invalid pos {0} with msg {1}'.format(pos, msg))
             self.assertEqual(line, pos[1])
@@ -83,15 +92,52 @@ class TestCaseBase(unittest.TestCase):
 
 class SimpleImportTestCase(TestCaseBase):
 
-    def test_checker(self):
-        def iterator():
-            for line, char, msg, origin in checker.run():
-                yield line, char, msg
-                self.assertIs(origin, flake8_string_format.StringFormatChecker)
+    _ERROR_REGEX = re.compile(r'^ *# Error(?:\(\+(\d+)\))?: P(\d\d\d)(?:, (\d+))?$')
 
-        tree = ast.parse(dynamic_code)
-        checker = flake8_string_format.StringFormatChecker(tree, 'fn')
-        self.run_test_pos(dynamic_positions, iterator())
+    def create_iterator(self, checker):
+        for line, char, msg, origin in checker.run():
+            yield line, char, msg
+            self.assertIs(origin, flake8_string_format.StringFormatChecker)
+
+    def run_code(self, code, positions, filename):
+        tree = ast.parse(code)
+        checker = flake8_string_format.StringFormatChecker(tree, filename)
+        self.run_test_pos(positions, self.create_iterator(checker))
+
+    def test_checker(self):
+        self.run_code(dynamic_code, dynamic_positions, 'fn')
+
+    def run_file(self, filename):
+        with codecs.open(filename, 'r', 'utf8') as f:
+            content = f.read()
+        positions = []
+        lines = content.splitlines()
+        for no, line in enumerate(lines):
+            match = self._ERROR_REGEX.match(line)
+            if match:
+                offset = 1 if match.group(1) is None else int(match.group(1))
+                no += offset
+                if match.group(3) is None:
+                    line = lines[no]
+                    single = line.find("'")
+                    double = line.find('"')
+                    if single < 0:
+                        assert double >= 0
+                        indent = double
+                    elif double < 0:
+                        indent = single
+                    else:
+                        indent = min(double, single)
+                else:
+                    indent = int(match.group(3))
+                positions += [(int(match.group(2)), no + 1, indent)]
+        self.run_code(content, positions, 'fn')
+
+    def test_files(self):
+        prefix = os.path.join('tests', 'files')
+        for filename in os.listdir(prefix):
+            if filename[-3:] == '.py':
+                self.run_file(os.path.join(prefix, filename))
 
 
 class TestPatchedPrint(unittest.TestCase):
