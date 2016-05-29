@@ -215,6 +215,10 @@ class StringFormatChecker(Flake8Argparse):
             node, 102 if node.is_docstring else 103)
 
     def _generate_error(self, node, code, **params):
+        if sys.version_info[:3] == (3, 4, 2) and isinstance(node, ast.Call):
+            # Due to https://bugs.python.org/issue21295 we cannot use the
+            # Call object
+            node = node.func.value
         msg = 'P{0} {1}'.format(code, self.ERRORS[code])
         msg = msg.format(**params)
         return node.lineno, node.col_offset, msg, type(self)
