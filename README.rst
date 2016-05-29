@@ -1,7 +1,7 @@
 String format parameter checker
 ===============================
 
-.. image:: https://secure.travis-ci.org/xZise/flake8-string-format.png?branch=master
+.. image:: https://travis-ci.org/xZise/flake8-string-format.svg?branch=0.2.2
    :alt: Build Status
    :target: https://travis-ci.org/xZise/flake8-string-format
 
@@ -130,6 +130,15 @@ allowed, this plugin won't cause false positives.
 
 Changes
 -------
+
+0.2.2 - 2016-05-29
+``````````````````
+* Do not check simple expressions, except for docstrings, because they cannot be
+  accessed anyway.
+* Properly assert starred arguments in Python 3.5. Only the last element must be
+  a vararg if varargs are present and not the complete list.
+* Output correct column offset on Python 3.4.2, as that used the wrong offset
+  inside calls.
 
 0.2.1 - 2015-09-20
 ``````````````````
