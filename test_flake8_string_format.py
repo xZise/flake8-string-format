@@ -108,6 +108,14 @@ class SimpleImportTestCase(TestCaseBase):
         self.run_code(dynamic_code, dynamic_positions, 'fn')
 
     def run_file(self, filename):
+        def first_find(string, searched):
+            first = -1
+            for single in searched:
+                single = string.find(single)
+                if single >= 0 and (single < first or first < 0):
+                    first = single
+            return first
+
         with codecs.open(filename, 'r', 'utf8') as f:
             content = f.read()
         positions = []
@@ -118,16 +126,8 @@ class SimpleImportTestCase(TestCaseBase):
                 offset = 1 if match.group(1) is None else int(match.group(1))
                 no += offset
                 if match.group(3) is None:
-                    line = lines[no]
-                    single = line.find("'")
-                    double = line.find('"')
-                    if single < 0:
-                        assert double >= 0
-                        indent = double
-                    elif double < 0:
-                        indent = single
-                    else:
-                        indent = min(double, single)
+                    indent = first_find(lines[no], ["'", '"', 'str.format'])
+                    assert indent >= 0
                 else:
                     indent = int(match.group(3))
                 positions += [(int(match.group(2)), no + 1, indent)]

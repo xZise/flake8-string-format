@@ -18,7 +18,8 @@ There are three variables:
   defaults to `1` then (the line below).
 * `YYY`: The exact error code that is expected.
 * `Z`: The indentation that is expected. If omitted it defaults to the location
-  of the first occurrence of either `"` or `'` in the line the error belongs to.
+  of the first occurrence of either `"`, `'` or `str.format` in the line the
+  error belongs to.
 
 For example::
 
