@@ -23,18 +23,6 @@ enough parameters given. If the format call uses variable arguments, it'll just
 check whether the right types of arguments are present.
 
 
-Standalone script
------------------
-
-The checker can be used directly::
-
-  $ python -m flake8_string_format some_file.py
-  some_file.py:1:1: P101 format string does contain unindexed parameters
-
-Even though Flake8 still uses ``optparse`` this script in standalone mode
-is using ``argparse``.
-
-
 Plugin for Flake8
 -----------------
 
@@ -60,8 +48,7 @@ Via ``--ignore`` it's possible to ignore unindexed parameters::
 Parameters
 ----------
 
-This module doesn't add any additional parameters. The stand alone version also
-mimics Flake8's ignore parameter.
+This module doesn't add any additional parameters to Flake8.
 
 
 Error codes
@@ -134,6 +121,9 @@ allowed, this plugin won't cause false positives.
 
 Changes
 -------
+0.3.0 - ????-??-??
+``````````````````
+* Removed support for standalone version
 
 0.2.3 - 2016-07-27
 ``````````````````

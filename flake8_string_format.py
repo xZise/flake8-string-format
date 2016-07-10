@@ -10,99 +10,8 @@ import sys
 
 from string import Formatter
 
-try:
-    import argparse
-except ImportError as e:
-    argparse = e
 
-__version__ = '0.2.3'
-
-
-class Flake8Argparse(object):
-
-    def __init__(self, tree, filename):
-        self.tree = tree
-        self.filename = filename
-
-    @classmethod
-    def add_options(cls, parser):
-        class Wrapper(object):
-            def add_argument(self, *args, **kwargs):
-                # flake8 uses config_options to handle stuff like 'store_true'
-                if kwargs.get('action') == 'store_true':
-                    for opt in args:
-                        if opt.startswith('--'):
-                            break
-                    else:
-                        opt = args[0]
-                    parser.config_options.append(opt.lstrip('-'))
-                parser.add_option(*args, **kwargs)
-
-        cls.add_arguments(Wrapper())
-
-    @classmethod
-    def add_arguments(cls, parser):
-        pass
-
-
-def create_parser(plugin_class, codes):
-    def handler(value):
-        if value:
-            ignored = set(value.split(','))
-            unrecognized = ignored - codes
-            ignored &= codes
-            if unrecognized:
-                invalid = set()
-                for invalid_code in unrecognized:
-                    no_valid = True
-                    if not invalid:
-                        for valid_code in codes:
-                            if valid_code.startswith(invalid_code):
-                                ignored.add(valid_code)
-                                no_valid = False
-                    if no_valid:
-                        invalid.add(invalid_code)
-                if invalid:
-                    raise argparse.ArgumentTypeError(
-                        'The code(s) is/are invalid: "{0}"'.format(
-                            '", "'.join(invalid)))
-            return ignored
-        else:
-            return set()
-
-    if isinstance(argparse, ImportError):
-        print('argparse is required for the standalone version.')
-        return False
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--ignore', type=handler, default='',
-                        help='Ignore the given comma-separated codes')
-    parser.add_argument('files', nargs='+')
-    plugin_class.add_arguments(parser)
-    return parser
-
-
-def handle_plugin(plugin_class, parser, args):
-    args = parser.parse_args(args)
-    if hasattr(plugin_class, 'parse_options'):
-        plugin_class.parse_options(args)
-    failed = False
-    for filename in args.files:
-        with open(filename, 'rb') as f:
-            tree = compile(f.read(), filename, 'exec', ast.PyCF_ONLY_AST, True)
-        for line, char, msg, checker in plugin_class(tree, filename).run():
-            if msg[:4] not in args.ignore:
-                print('{0}:{1}:{2}: {3}'.format(filename, line, char + 1, msg))
-                failed = True
-    return not failed
-
-
-def execute(plugin_class, args, choices):
-    parser = create_parser(plugin_class, choices)
-    if parser is not False:
-        return handle_plugin(plugin_class, parser, args)
-    else:
-        return False
+__version__ = '0.3.0.dev0'
 
 
 class TextVisitor(ast.NodeVisitor):
@@ -189,7 +98,7 @@ class TextVisitor(ast.NodeVisitor):
         super(TextVisitor, self).generic_visit(node)
 
 
-class StringFormatChecker(Flake8Argparse):
+class StringFormatChecker(object):
 
     _FORMATTER = Formatter()
     FIELD_REGEX = re.compile(r'^((?:\s|.)*?)(\..*|\[.*\])?$')
@@ -209,6 +118,9 @@ class StringFormatChecker(Flake8Argparse):
         301: 'format call provides unused index ({idx})',
         302: 'format call provides unused keyword ({kw})',
     }
+
+    def __init__(self, tree, filename):
+        self.tree = tree
 
     def _generate_unindexed(self, node):
         return self._generate_error(
@@ -335,12 +247,3 @@ class StringFormatChecker(Flake8Argparse):
 
                 if implicit and explicit:
                     yield self._generate_error(call, 205)
-
-
-def main(args):
-    choices = set('P{0}'.format(code) for code in StringFormatChecker.ERRORS)
-    return execute(StringFormatChecker, args, choices)
-
-
-if __name__ == '__main__':
-    main(sys.argv[1:])
