@@ -31,7 +31,7 @@ setup(
     zip_safe=False,
     entry_points={
         'flake8.extension': [
-            'flake8-string-format = flake8_string_format:StringFormatChecker',
+            'P = flake8_string_format:StringFormatChecker',
         ],
     },
     test_suite='test_flake8_string_format',
