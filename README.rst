@@ -42,7 +42,7 @@ When both Flake8 and ``flake8-string-format`` are installed, the plugin
 is available in ``flake8``::
 
   $ flake8 --version
-  2.0 (pep8: 1.4.2, flake8-string-format: 0.2.0, pyflakes: 0.6.1)
+  3.0.2 (flake8-string-format: 0.2.3, […]
 
 This plugin supports Flake8 2.6 as well as Flake8 3.0. Older or newer versions
 may be supported too but they weren't tested.
@@ -134,6 +134,11 @@ allowed, this plugin won't cause false positives.
 
 Changes
 -------
+
+0.2.3 - 2016-07-27
+``````````````````
+* Properly register with Flake8 so it will be selected on Flake8 3.x by default
+  and it can be selected on Flake8 2.x.
 
 0.2.2 - 2016-05-29
 ``````````````````
