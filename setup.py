@@ -34,6 +34,7 @@ setup(
             'P = flake8_string_format:StringFormatChecker',
         ],
     },
+    tests_require=['six'],
     test_suite='test_flake8_string_format',
     classifiers=[
         'Development Status :: 3 - Alpha',

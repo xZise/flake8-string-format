@@ -14,6 +14,8 @@ if sys.version_info < (2, 7):
 else:
     import unittest
 
+import six
+
 import flake8_string_format
 
 
@@ -92,12 +94,13 @@ class TestCaseBase(unittest.TestCase):
 
 class SimpleImportTestCase(TestCaseBase):
 
-    _ERROR_REGEX = re.compile(r'^ *# Error(?:\(\+(\d+)\))?: P(\d\d\d)(?:, (\d+))?$')
-
     def create_iterator(self, checker):
         for line, char, msg, origin in checker.run():
             yield line, char, msg
             self.assertIs(origin, flake8_string_format.StringFormatChecker)
+
+
+class TestSimple(SimpleImportTestCase):
 
     def run_code(self, code, positions, filename):
         tree = ast.parse(code)
@@ -107,8 +110,27 @@ class SimpleImportTestCase(TestCaseBase):
     def test_checker(self):
         self.run_code(dynamic_code, dynamic_positions, 'fn')
 
-    def run_file(self, filename):
+
+class ManualFileMetaClass(type):
+
+    _SINGLE_REGEX = re.compile(r'P(\d\d\d)(?: +\((\d+)\))?')
+    _ERROR_REGEX = re.compile(r'^ *# Error(?:\(\+(\d+)\))?: (.*)$')
+
+    def __new__(cls, name, bases, dct):
+        prefix = os.path.join('tests', 'files')
+        for filename in os.listdir(prefix):
+            if filename[-3:] == '.py':
+                assert re.match(r"^[A-Za-z]*\.py", filename)
+                test = cls._create_tests(prefix, filename)
+                assert test.__name__ not in dct
+                dct[test.__name__] = test
+
+        return super(ManualFileMetaClass, cls).__new__(cls, name, bases, dct)
+
+    @classmethod
+    def _create_tests(cls, directory, filename):
         def first_find(string, searched):
+            """Find the first occurrence of any string in searched."""
             first = -1
             for single in searched:
                 single = string.find(single)
@@ -116,28 +138,44 @@ class SimpleImportTestCase(TestCaseBase):
                     first = single
             return first
 
+        only_filename = filename
+        filename = os.path.join(directory, filename)
         with codecs.open(filename, 'r', 'utf8') as f:
             content = f.read()
-        positions = []
+        all_positions = []
         lines = content.splitlines()
         for no, line in enumerate(lines):
-            match = self._ERROR_REGEX.match(line)
+            match = cls._ERROR_REGEX.match(line)
             if match:
                 offset = 1 if match.group(1) is None else int(match.group(1))
-                no += offset
-                if match.group(3) is None:
-                    indent = first_find(lines[no], ["'", '"', 'str.format'])
-                    assert indent >= 0
-                else:
-                    indent = int(match.group(3))
-                positions += [(int(match.group(2)), no + 1, indent)]
-        self.run_code(content, positions, 'fn')
+                line = lines[no + offset]
+                for match in cls._SINGLE_REGEX.finditer(match.group(2)):
+                    if match.group(2) is not None:
+                        indent = int(match.group(2))
+                    else:
+                        indent = first_find(line, ["'", '"', 'str.format'])
+                        # If r, u or b prefix, decrease indent by one
+                        if line[indent] in '"\'':
+                            while indent > 0 and line[indent - 1] in 'rub':
+                                indent -= 1
+                        assert indent >= 0
 
-    def test_files(self):
-        prefix = os.path.join('tests', 'files')
-        for filename in os.listdir(prefix):
-            if filename[-3:] == '.py':
-                self.run_file(os.path.join(prefix, filename))
+                    all_positions += [(int(match.group(1)), no + offset + 1, indent)]
+
+        tree = ast.parse(content)
+
+        def defaults(self):
+            checker = flake8_string_format.StringFormatChecker(tree, filename)
+            self.run_test_pos(all_positions, self.create_iterator(checker))
+
+        defaults.__name__ = str('test_{0}'.format(only_filename[:-3]))
+        return defaults
+
+
+@six.add_metaclass(ManualFileMetaClass)
+class TestManualFiles(SimpleImportTestCase):
+
+    """Test the manually created files in tests/files/."""
 
 
 class TestPatchedPrint(unittest.TestCase):
