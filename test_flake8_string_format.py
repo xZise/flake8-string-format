@@ -9,7 +9,9 @@ import re
 import sys
 import tempfile
 
-if sys.version_info < (2, 7):
+PY26 = sys.version_info[:2] == (2, 6)
+
+if PY26:
     import unittest2 as unittest
 else:
     import unittest
@@ -107,6 +109,7 @@ class TestSimple(SimpleImportTestCase):
         checker = flake8_string_format.StringFormatChecker(tree, filename)
         self.run_test_pos(positions, self.create_iterator(checker))
 
+    @unittest.skipIf(PY26, 'Python 2.6 does not handle implicit parameters.')
     def test_checker(self):
         self.run_code(dynamic_code, dynamic_positions, 'fn')
 
@@ -218,6 +221,7 @@ class TestMainPrintPatched(TestPatchedPrint, TestCaseBase):
         flake8_string_format.main(parameters + [self.tmp_file])
         self.run_test_pos(positions, self.iterator())
 
+    @unittest.skipIf(PY26, 'Python 2.6 does not handle implicit parameters.')
     def test_main(self):
         code = '#!/usr/bin/python\n# -*- coding: utf-8 -*-\n' + dynamic_code
         self.tmp_file = tempfile.mkstemp()[1]

@@ -12,11 +12,6 @@ script:
   - python setup.py test
   - if [[ "$TRAVIS_PYTHON_VERSION" != "nightly" ]]; then coverage run setup.py test ; fi
 
-matrix:
-  allow_failures:
-    # Allow failures on 2.6 as it doesn't detect implicit parameters
-    - python: "2.6"
-
 notifications:
   email: false
 before_install:
