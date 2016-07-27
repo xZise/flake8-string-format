@@ -13,9 +13,10 @@ String format parameter checker
    :alt: Pypi Entry
    :target: https://pypi.python.org/pypi/flake8-string-format
 
-An extension for ``flake8`` to check the strings and parameters using
-``str.format``. It checks all strings whether they use numbered parameters with
-an implicit index which isn't support in Python 2.6.
+An extension for `Flake8 <https://pypi.python.org/pypi/flake8>`_ to check the
+strings and parameters using ``str.format``. It checks all strings whether they
+use numbered parameters with an implicit index which isn't support in
+Python 2.6.
 
 In all instances of ``'…'.format(…)`` it will also check whether there are
 enough parameters given. If the format call uses variable arguments, it'll just
@@ -30,20 +31,23 @@ The checker can be used directly::
   $ python -m flake8_string_format some_file.py
   some_file.py:1:1: P101 format string does contain unindexed parameters
 
-Even though ``flake8`` still uses ``optparse`` this script in standalone mode
+Even though Flake8 still uses ``optparse`` this script in standalone mode
 is using ``argparse``.
 
 
 Plugin for Flake8
 -----------------
 
-When both ``flake8 2.0`` and ``flake8-string-format`` are installed, the plugin
+When both Flake8 and ``flake8-string-format`` are installed, the plugin
 is available in ``flake8``::
 
   $ flake8 --version
   2.0 (pep8: 1.4.2, flake8-string-format: 0.2.0, pyflakes: 0.6.1)
 
-Via ``--ignore`` it's possible to ignore unindxed parameters::
+This plugin supports Flake8 2.6 as well as Flake8 3.0. Older or newer versions
+may be supported too but they weren't tested.
+
+Via ``--ignore`` it's possible to ignore unindexed parameters::
 
   $ flake8 some_file.py
   ...
@@ -57,7 +61,7 @@ Parameters
 ----------
 
 This module doesn't add any additional parameters. The stand alone version also
-mimics flake8's ignore parameter.
+mimics Flake8's ignore parameter.
 
 
 Error codes
@@ -106,7 +110,7 @@ range. Only the format string can cause all errors while any other string can
 only cause the corresponding P1XX error.
 
 For this plugin all strings which are the first expression of the module or
-after a function or class defnition are considered docstrings.
+after a function or class definition are considered docstrings.
 
 If the ``format`` method is used on a string or ``str.format`` with the string
 as the first parameter, it will consider this a format string and will analyze
