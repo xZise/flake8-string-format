@@ -16,6 +16,8 @@ if PY26:
 else:
     import unittest
 
+from collections import defaultdict
+
 import six
 
 import flake8_string_format
@@ -53,7 +55,7 @@ def generate_code():
                 code += ['if True:']
             code += ['{0}{1}"{4}{{{2}{3}}}{5}"{fmt}'.format(*variant, fmt=fmt_code)]
             if not variant[2] and not variant[0].strip().startswith('#') and use_format > 0:
-                positions += [(101 if use_format > 1 else 103, len(code), len(variant[0]))]
+                positions += [(len(code), len(variant[0]), 'P101' if use_format > 1 else 'P103')]
     return '\n'.join(code), positions
 
 dynamic_code, dynamic_positions = generate_code()
@@ -61,37 +63,72 @@ dynamic_code, dynamic_positions = generate_code()
 
 class TestCaseBase(unittest.TestCase):
 
-    def run_test_pos(self, positions, iterator):
-        positions = iter(positions)
-        for line, offset, msg in iterator:
-            try:
-                pos = next(positions)
-            except StopIteration:
-                self.fail('no more positions but found '
-                          '{0}:{1}: {2}'.format(line, offset, msg))
-            if pos[0] == 101:
-                self.assertEqual(
-                    msg, 'P101 format string does contain unindexed parameters')
-            elif pos[0] == 102:
-                self.assertEqual(
-                    msg, 'P102 docstring does contain unindexed parameters')
-            elif pos[0] == 103:
-                self.assertEqual(
-                    msg, 'P103 other string does contain unindexed parameters')
-            elif pos[0] == 203:
-                self.assertEqual(
-                    msg, 'P203 format call uses keyword arguments but no named entries')
-            elif pos[0] == 204:
-                self.assertEqual(
-                    msg, 'P204 format call uses variable arguments but no numbered entries')
-            elif pos[0] == 205:
-                self.assertEqual(
-                    msg, 'P205 format call uses implicit and explicit indexes together')
-            else:
-                self.fail('Invalid pos {0} with msg {1}'.format(pos, msg))
-            self.assertEqual(line, pos[1])
-            self.assertEqual(offset, pos[2])
-        self.assertRaises(StopIteration, next, positions)
+    def compare_results(self, results, expected_results):
+        def format_result(result):
+            return '{0}:{1}: {2}'.format(*result)
+
+        def format_wrong_results(results, correlations=None):
+            # sort using line and offset
+            results = sorted(results, key=lambda result: result[:2])
+            if correlations is None:
+                correlations = {}
+
+            formatted_string = ''
+            for result in results:
+                formatted_string += '\n\t' + format_result(result)
+                if result in correlations:
+                    formatted_string += ' (expected {0})'.format(format_result(correlations[result]))
+            return formatted_string
+
+        def compare_tuples_ordered(tuple1, tuple2):
+            if len(tuple1) != len(tuple2):
+                return False
+            differences = []
+            for index, (entry1, entry2) in enumerate(zip(tuple1, tuple2)):
+                if entry1 != entry2:
+                    differences += [index]
+            return tuple(differences)
+
+
+        # Extract error code part from the message
+        results = [(result[0], result[1], result[2].split(' ', 1)[0])
+                   for result in results]
+        # Compare two results: current and expected
+        # Remove all entries which can be exactly matched (those are fine)
+        result_set = set(results)
+        expected_result_set = set(expected_results)
+        # All results must be unique
+        assert len(result_set) == len(results)
+        assert len(expected_result_set) == len(expected_results)
+        missing_results = expected_result_set - result_set
+        invalid_results = result_set - expected_result_set
+        correlations = dict()
+        # TODO: Try more advanced stuff like correlating two entries
+        for missing_result in missing_results:
+            all_candidates = defaultdict(list)
+            for invalid_result in invalid_results:
+                differences = compare_tuples_ordered(missing_result, invalid_result)
+                assert differences  # they have to be different as per above
+                if len(differences) == 1:
+                    # Only single differences for now
+                    all_candidates[differences] += [invalid_result]
+            only_candidates = []
+            for candidate_list in all_candidates.values():
+                if len(candidate_list) == 1:
+                    only_candidates += candidate_list
+            if len(only_candidates) == 1:
+                # Only one candidate is remaining, set this!
+                correlations[missing_result] = only_candidates[0]
+                invalid_results -= set(only_candidates)
+
+        message = ''
+        if missing_results:
+            message += '\nMissing results:' + format_wrong_results(missing_results, correlations)
+        if invalid_results:
+            message += '\nInvalid results:' + format_wrong_results(invalid_results)
+        if message:
+            message = 'The reported and expected results differ:' + message
+            self.fail(message)
 
 
 class SimpleImportTestCase(TestCaseBase):
@@ -107,7 +144,7 @@ class TestSimple(SimpleImportTestCase):
     def run_code(self, code, positions, filename):
         tree = ast.parse(code)
         checker = flake8_string_format.StringFormatChecker(tree, filename)
-        self.run_test_pos(positions, self.create_iterator(checker))
+        self.compare_results(self.create_iterator(checker), positions)
 
     @unittest.skipIf(PY26, 'Python 2.6 does not handle implicit parameters.')
     def test_checker(self):
@@ -116,7 +153,7 @@ class TestSimple(SimpleImportTestCase):
 
 class ManualFileMetaClass(type):
 
-    _SINGLE_REGEX = re.compile(r'P(\d\d\d)(?: +\((\d+)\))?')
+    _SINGLE_REGEX = re.compile(r'(P\d\d\d)(?: +\((\d+)\))?')
     _ERROR_REGEX = re.compile(r'^ *# Error(?:\(\+(\d+)\))?: (.*)$')
 
     def __new__(cls, name, bases, dct):
@@ -163,13 +200,13 @@ class ManualFileMetaClass(type):
                                 indent -= 1
                         assert indent >= 0
 
-                    all_positions += [(int(match.group(1)), no + offset + 1, indent)]
+                    all_positions += [(no + offset + 1, indent, match.group(1))]
 
         tree = ast.parse(content)
 
         def defaults(self):
             checker = flake8_string_format.StringFormatChecker(tree, filename)
-            self.run_test_pos(all_positions, self.create_iterator(checker))
+            self.compare_results(self.create_iterator(checker), all_positions)
 
         defaults.__name__ = str('test_{0}'.format(only_filename[:-3]))
         return defaults
@@ -210,16 +247,17 @@ class TestMainPrintPatched(TestPatchedPrint, TestCaseBase):
             yield int(line) - 2, int(char) - 1, msg
             self.assertEqual(fn, self.tmp_file)
 
-    def run_test(self, ignored='', is_ignored=lambda n: False):
+    def run_test(self, ignored=None):
         positions = dynamic_positions
         if ignored:
-            positions = [pos for pos in positions if not is_ignored(pos[0])]
-            parameters = ['--ignore', ignored]
+            positions = [pos for pos in positions
+                         if not pos[2].startswith(ignored)]
+            parameters = ['--ignore', ','.join(ignored)]
         else:
             parameters = []
         self.messages = []
         flake8_string_format.main(parameters + [self.tmp_file])
-        self.run_test_pos(positions, self.iterator())
+        self.compare_results(self.iterator(), positions)
 
     @unittest.skipIf(PY26, 'Python 2.6 does not handle implicit parameters.')
     def test_main(self):
@@ -229,9 +267,9 @@ class TestMainPrintPatched(TestPatchedPrint, TestCaseBase):
             with codecs.open(self.tmp_file, 'w', 'utf-8') as f:
                 f.write(code)
             self.run_test()
-            self.run_test('P1', lambda n: n // 100 == 1)
-            self.run_test('P101', lambda n: n == 101)
-            self.run_test('P201,P1', lambda n: n // 100 == 1 or n == 201)
+            self.run_test(('P1', ))
+            self.run_test(('P101', ))
+            self.run_test(('P201', 'P1'))
         finally:
             os.remove(self.tmp_file)
 
