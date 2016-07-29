@@ -24,6 +24,10 @@ import flake8_string_format
 
 
 def generate_code():
+    if PY26:
+        working_formats = [2, 3]
+    else:
+        working_formats = [1, 2, 3]
     code = ['dummy = "line"']
     positions = []
     for variant in itertools.product(
@@ -54,8 +58,15 @@ def generate_code():
             if indented:
                 code += ['if True:']
             code += ['{0}{1}"{4}{{{2}{3}}}{5}"{fmt}'.format(*variant, fmt=fmt_code)]
-            if not variant[2] and not variant[0].strip().startswith('#') and use_format > 0:
-                positions += [(len(code), len(variant[0]), 'P101' if use_format > 1 else 'P103')]
+            if not variant[2] and not variant[0].strip().startswith('#') and use_format in working_formats:
+                column = len(variant[0])
+                if PY26:
+                    expected_code = 'P301'
+                    if use_format == 3:
+                        column -= len('str.format(')
+                else:
+                    expected_code = 'P101' if use_format > 1 else 'P103'
+                positions += [(len(code), column, expected_code)]
     return '\n'.join(code), positions
 
 dynamic_code, dynamic_positions = generate_code()
@@ -146,7 +157,6 @@ class TestSimple(SimpleImportTestCase):
         checker = flake8_string_format.StringFormatChecker(tree, filename)
         self.compare_results(self.create_iterator(checker), positions)
 
-    @unittest.skipIf(PY26, 'Python 2.6 does not handle implicit parameters.')
     def test_checker(self):
         self.run_code(dynamic_code, dynamic_positions, 'fn')
 
@@ -259,7 +269,6 @@ class TestMainPrintPatched(TestPatchedPrint, TestCaseBase):
         flake8_string_format.main(parameters + [self.tmp_file])
         self.compare_results(self.iterator(), positions)
 
-    @unittest.skipIf(PY26, 'Python 2.6 does not handle implicit parameters.')
     def test_main(self):
         code = '#!/usr/bin/python\n# -*- coding: utf-8 -*-\n' + dynamic_code
         self.tmp_file = tempfile.mkstemp()[1]
