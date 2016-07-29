@@ -7,7 +7,20 @@ python:
   - "3.5-dev"
   - "nightly"
 
+# TODO: Switch Flake8 version when Flake8 3.x is more mature (?)
+env:
+  - FLAKE8_VERSION=">=2.6,<3"
+
+matrix:
+  include:
+    - python: "2.7"
+      env: FLAKE8_VERSION=">=3.0.2"
+    - python: "3.5"
+      env: FLAKE8_VERSION=">=3.0.2"
+
 script:
+  - pip install flake8$FLAKE8_VERSION
+  - python setup.py develop
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.6" ]]; then pip install unittest2 ; fi
   - python setup.py test
   - if [[ "$TRAVIS_PYTHON_VERSION" != "nightly" ]]; then coverage run setup.py test ; fi

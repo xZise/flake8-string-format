@@ -17,6 +17,7 @@ else:
     import unittest
 
 from collections import defaultdict
+from subprocess import Popen, PIPE
 
 import six
 
@@ -28,7 +29,7 @@ def generate_code():
         working_formats = [2, 3]
     else:
         working_formats = [1, 2, 3]
-    code = ['dummy = "line"']
+    code = ['#!/usr/bin/python', '# -*- coding: utf-8 -*-', 'dummy = "line"']
     positions = []
     for variant in itertools.product(
             ['', '#', '    '], ['', 'u', 'b'], ['', '0', 'param'], ['', ':03'],
@@ -215,8 +216,7 @@ class ManualFileMetaClass(type):
         tree = ast.parse(content)
 
         def defaults(self):
-            checker = flake8_string_format.StringFormatChecker(tree, filename)
-            self.compare_results(self.create_iterator(checker), all_positions)
+            self.run_test(all_positions, tree, filename)
 
         defaults.__name__ = str('test_{0}'.format(only_filename[:-3]))
         return defaults
@@ -226,6 +226,84 @@ class ManualFileMetaClass(type):
 class TestManualFiles(SimpleImportTestCase):
 
     """Test the manually created files in tests/files/."""
+
+    def run_test(self, positions, tree, filename):
+        checker = flake8_string_format.StringFormatChecker(tree, filename)
+        self.compare_results(self.create_iterator(checker), positions)
+
+
+class OutputTestCase(TestCaseBase):
+
+    def iterator(self, messages, expected_filename):
+        for msg in messages:
+            match = re.match(r'([^:]+):(\d+):(\d+): (.*)', msg)
+            fn, line, char, msg = match.groups()
+            yield int(line), int(char) - 1, msg
+            self.assertEqual(fn, expected_filename)
+
+
+class Flake8CaseBase(OutputTestCase):
+
+    def run_test(self, positions, filename, content):
+        # Either stdin or file
+        assert filename is None or content is None
+        env = os.environ.copy()
+        env['PYTHONIOENCODING'] = 'utf8'
+        if content is None:
+            expected_filename = filename
+            stdin = None
+        else:
+            expected_filename = 'stdin'
+            filename = '-'
+            stdin = PIPE
+        p = Popen(['flake8', '--select=P', filename], env=env,
+                  stdin=stdin, stdout=PIPE, stderr=PIPE)
+        # TODO: Add possibility for timeout
+        stdout, stderr = p.communicate(input=content)
+
+        stdout_lines = stdout.decode('utf8').splitlines()
+        # On Flake8 3.x the order might be different
+        # See also: https://gitlab.com/pycqa/flake8/issues/196
+        import flake8
+        if hasattr(flake8, '__version_info__'):
+            original_stdout_lines = stdout_lines
+            parsed_lines = list(self.iterator(stdout_lines, expected_filename))
+            # sort by line index, and hope the algorithm is stable
+            parsed_lines.sort(key=lambda line: line[0])
+            stdout_lines = ['{0}:{1}:{2}: {3}'.format(expected_filename,
+                                                      line[0], line[1] + 1,
+                                                      line[2])
+                            for line in parsed_lines]
+            if original_stdout_lines != stdout_lines:
+                print('Order was changed')
+
+        self.assertEqual(stderr, b'')
+        self.compare_results(
+            self.iterator(stdout_lines, expected_filename), positions)
+
+
+@six.add_metaclass(ManualFileMetaClass)
+class TestFlake8Files(Flake8CaseBase):
+
+    def run_test(self, positions, tree, filename):
+        """Test using stdin."""
+        super(TestFlake8Files, self).run_test(positions, filename, None)
+
+
+class TestFlake8StdinDynamic(Flake8CaseBase):
+
+    def test_dynamic(self):
+        self.run_test(dynamic_positions, None, dynamic_code.encode('utf8'))
+
+
+@six.add_metaclass(ManualFileMetaClass)
+class TestFlake8Stdin(Flake8CaseBase):
+
+    def run_test(self, positions, tree, filename):
+        """Test using stdin."""
+        with open(filename, 'rb') as f:
+            content = f.read()
+        super(TestFlake8Stdin, self).run_test(positions, None, content)
 
 
 class TestPatchedPrint(unittest.TestCase):
@@ -243,19 +321,12 @@ class TestPatchedPrint(unittest.TestCase):
         super(TestPatchedPrint, self).tearDown()
 
 
-class TestMainPrintPatched(TestPatchedPrint, TestCaseBase):
+class TestMainPrintPatched(TestPatchedPrint, OutputTestCase):
 
     def setUp(self):
         if isinstance(flake8_string_format.argparse, ImportError):
             raise unittest.SkipTest('argparse is not available')
         super(TestMainPrintPatched, self).setUp()
-
-    def iterator(self):
-        for msg in self.messages:
-            match = re.match(r'([^:]+):(\d+):(\d+): (.*)', msg)
-            fn, line, char, msg = match.groups()
-            yield int(line) - 2, int(char) - 1, msg
-            self.assertEqual(fn, self.tmp_file)
 
     def run_test(self, ignored=None):
         positions = dynamic_positions
@@ -267,14 +338,13 @@ class TestMainPrintPatched(TestPatchedPrint, TestCaseBase):
             parameters = []
         self.messages = []
         flake8_string_format.main(parameters + [self.tmp_file])
-        self.compare_results(self.iterator(), positions)
+        self.compare_results(self.iterator(self.messages, self.tmp_file), positions)
 
     def test_main(self):
-        code = '#!/usr/bin/python\n# -*- coding: utf-8 -*-\n' + dynamic_code
         self.tmp_file = tempfile.mkstemp()[1]
         try:
             with codecs.open(self.tmp_file, 'w', 'utf-8') as f:
-                f.write(code)
+                f.write(dynamic_code)
             self.run_test()
             self.run_test(('P1', ))
             self.run_test(('P101', ))
