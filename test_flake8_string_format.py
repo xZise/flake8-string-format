@@ -262,20 +262,6 @@ class Flake8CaseBase(OutputTestCase):
         stdout, stderr = p.communicate(input=content)
 
         stdout_lines = stdout.decode('utf8').splitlines()
-        # On Flake8 3.x the order might be different
-        # See also: https://gitlab.com/pycqa/flake8/issues/196
-        import flake8
-        if hasattr(flake8, '__version_info__'):
-            original_stdout_lines = stdout_lines
-            parsed_lines = list(self.iterator(stdout_lines, expected_filename))
-            # sort by line index, and hope the algorithm is stable
-            parsed_lines.sort(key=lambda line: line[0])
-            stdout_lines = ['{0}:{1}:{2}: {3}'.format(expected_filename,
-                                                      line[0], line[1] + 1,
-                                                      line[2])
-                            for line in parsed_lines]
-            if original_stdout_lines != stdout_lines:
-                print('Order was changed')
 
         self.assertEqual(stderr, b'')
         self.compare_results(

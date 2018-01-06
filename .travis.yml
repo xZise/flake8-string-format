@@ -6,7 +6,7 @@ python:
   - "nightly"
 
 env:
-  - FLAKE8_VERSION=">=3.0.2"
+  - FLAKE8_VERSION=">=3.0.3"
 
 matrix:
   include:
