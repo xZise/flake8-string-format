@@ -150,24 +150,6 @@ class StringFormatChecker(object):
 
     @classmethod
     def add_options(cls, parser):
-        class OptionWrapper():
-
-            original = parser
-
-            def add_option(self, *args, **kwargs):
-                try:
-                    self.original.add_option(*args, **kwargs)
-                except (optparse.OptionError, TypeError):
-                    use_config = kwargs.pop('parse_from_config', False)
-                    option = self.original.add_option(*args, **kwargs)
-                    if use_config:
-                        # Flake8 2.x uses config_options instead of the
-                        # 'parse_from_config' parameter
-                        self.original.config_options.append(
-                            option.get_opt_string().lstrip('-'))
-
-        # Support Flake8 3.x feature in Flake 2.x
-        parser = OptionWrapper()
         parser.add_option(
             '--check-raw-strings', action='store_true', parse_from_config=True,
             help='Also verify raw strings (r".")')
@@ -323,6 +305,22 @@ class StringFormatCheckerOwnTokens(StringFormatChecker):
             lines = pep8.readlines(filename)
 
         super(StringFormatCheckerOwnTokens, self).__init__(tree, lines)
+
+    @classmethod
+    def add_options(cls, parser):
+        # Wrap for Flake8 2.x as it doesn't support "parse_from_config"
+        class OptionWrapper():
+
+            def add_option(self, *args, **kwargs):
+                use_config = kwargs.pop('parse_from_config', False)
+                option = parser.add_option(*args, **kwargs)
+                if use_config:
+                    # Flake8 2.x uses config_options instead of the
+                    # 'parse_from_config' parameter
+                    parser.config_options.append(
+                        option.get_opt_string().lstrip('-'))
+
+        super(StringFormatCheckerOwnTokens, cls).add_options(OptionWrapper())
 
 
 if getattr(flake8, '__version_info__', (2, 0))[:3] < (3,):
