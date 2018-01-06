@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import ast
 import codecs
+import io
 import itertools
 import optparse
 import os
@@ -19,9 +20,17 @@ else:
 from collections import defaultdict
 from subprocess import Popen, PIPE
 
+import flake8
 import six
 
 import flake8_string_format
+
+
+# The original base class is shadowed when using an older version of Flake8
+# This removes the shadowing class as some tests need to run on the base class
+base_class = flake8_string_format.StringFormatChecker
+if getattr(flake8, '__version_info__', (2, 0))[:3] < (3,):
+    base_class = base_class.__bases__[0]
 
 
 def generate_code():
@@ -148,33 +157,34 @@ class SimpleImportTestCase(TestCaseBase):
     def create_iterator(self, checker):
         for line, char, msg, origin in checker.run():
             yield line, char, msg
-            self.assertIs(origin, flake8_string_format.StringFormatChecker)
+            self.assertIs(origin, base_class)
 
 
 class TestSimple(SimpleImportTestCase):
 
-    def run_code(self, code, positions, filename):
+    def run_code(self, code, positions):
         tree = ast.parse(code)
-        checker = flake8_string_format.StringFormatChecker(tree, filename)
+        checker = base_class(tree, code.splitlines(True))
         self.compare_results(self.create_iterator(checker), positions)
 
     def test_checker(self):
-        self.run_code(dynamic_code, dynamic_positions, 'fn')
+        self.run_code(dynamic_code, dynamic_positions)
 
 
 class ManualFileMetaClass(type):
 
-    _SINGLE_REGEX = re.compile(r'(P\d\d\d)(?: +\((\d+)\))?')
+    _SINGLE_REGEX = re.compile(r'(P\d\d\d)(?: +\(([^)]+)\))?')
     _ERROR_REGEX = re.compile(r'^ *# Error(?:\(\+(\d+)\))?: (.*)$')
+    _VALID_PARAMS = frozenset(['raw'])
 
     def __new__(cls, name, bases, dct):
         prefix = os.path.join('tests', 'files')
         for filename in os.listdir(prefix):
             if filename[-3:] == '.py':
                 assert re.match(r"^[A-Za-z]*\.py", filename)
-                test = cls._create_tests(prefix, filename)
-                assert test.__name__ not in dct
-                dct[test.__name__] = test
+                for test in cls._create_tests(prefix, filename):
+                    assert test.__name__ not in dct
+                    dct[test.__name__] = test
 
         return super(ManualFileMetaClass, cls).__new__(cls, name, bases, dct)
 
@@ -201,9 +211,26 @@ class ManualFileMetaClass(type):
                 offset = 1 if match.group(1) is None else int(match.group(1))
                 line = lines[no + offset]
                 for match in cls._SINGLE_REGEX.finditer(match.group(2)):
+                    indent = None
+                    params = set()
+                    applicable = True
                     if match.group(2) is not None:
-                        indent = int(match.group(2))
-                    else:
+                        for param in re.split(r" *, *", match.group(2)):
+                            if param == ">PY26":
+                                if PY26:
+                                    applicable = False
+                            elif param in cls._VALID_PARAMS:
+                                params.add(param)
+                            else:
+                                try:
+                                    indent = int(param)
+                                except ValueError:
+                                    raise ValueError('Invalid parameters "{0}" in line {1}'.format(match.group(2), no))
+
+                    if not applicable:
+                        continue
+
+                    if indent is None:
                         indent = first_find(line, ["'", '"', 'str.format'])
                         # If r, u or b prefix, decrease indent by one
                         if line[indent] in '"\'':
@@ -211,15 +238,29 @@ class ManualFileMetaClass(type):
                                 indent -= 1
                         assert indent >= 0
 
-                    all_positions += [(no + offset + 1, indent, match.group(1))]
+                    # Make sure for now only "raw" is a valid filter (apart
+                    # from ">PY26" which is only tested once)
+                    assert not params - set(['raw'])
+                    all_positions += [(no + offset + 1, indent, match.group(1), params)]
 
         tree = ast.parse(content)
 
-        def defaults(self):
-            self.run_test(all_positions, tree, filename)
+        # Maybe make it more dynamic when more filters are there
+        def create(raw):
+            def defaults(self):
+                self.run_test(positions, tree, filename, content, options)
 
-        defaults.__name__ = str('test_{0}'.format(only_filename[:-3]))
-        return defaults
+            positions = [pos[:3] for pos in all_positions
+                         if not pos[3] or raw]
+            options = {'raw': raw}
+            if raw:
+                name_args = '_raw'
+            else:
+                name_args = ''
+            defaults.__name__ = str('test_{0}{1}'.format(only_filename[:-3], name_args))
+            return defaults
+
+        return create(False), create(True)
 
 
 @six.add_metaclass(ManualFileMetaClass)
@@ -227,8 +268,10 @@ class TestManualFiles(SimpleImportTestCase):
 
     """Test the manually created files in tests/files/."""
 
-    def run_test(self, positions, tree, filename):
-        checker = flake8_string_format.StringFormatChecker(tree, filename)
+    def run_test(self, positions, tree, filename, content, options):
+        checker = base_class(tree, content.splitlines(True))
+        if options['raw']:
+            checker.check_raw = True
         self.compare_results(self.create_iterator(checker), positions)
 
 
@@ -244,7 +287,7 @@ class OutputTestCase(TestCaseBase):
 
 class Flake8CaseBase(OutputTestCase):
 
-    def run_test(self, positions, filename, content):
+    def run_test(self, positions, filename, content, parameters=None):
         # Either stdin or file
         assert filename is None or content is None
         env = os.environ.copy()
@@ -256,7 +299,10 @@ class Flake8CaseBase(OutputTestCase):
             expected_filename = 'stdin'
             filename = '-'
             stdin = PIPE
-        p = Popen(['flake8', '--select=P', filename], env=env,
+            content = content.encode("utf8")
+        if parameters is None:
+            parameters = []
+        p = Popen(['flake8', '--select=P'] + parameters + [filename], env=env,
                   stdin=stdin, stdout=PIPE, stderr=PIPE)
         # TODO: Add possibility for timeout
         stdout, stderr = p.communicate(input=content)
@@ -271,25 +317,30 @@ class Flake8CaseBase(OutputTestCase):
 @six.add_metaclass(ManualFileMetaClass)
 class TestFlake8Files(Flake8CaseBase):
 
-    def run_test(self, positions, tree, filename):
+    def run_test(self, positions, tree, filename, content, options):
         """Test using stdin."""
-        super(TestFlake8Files, self).run_test(positions, filename, None)
+        parameters = []
+        if options['raw']:
+            parameters += ['--check-raw-strings']
+        super(TestFlake8Files, self).run_test(positions, filename, None,
+                                              parameters)
 
 
 class TestFlake8StdinDynamic(Flake8CaseBase):
 
     def test_dynamic(self):
-        self.run_test(dynamic_positions, None, dynamic_code.encode('utf8'))
+        self.run_test(dynamic_positions, None, dynamic_code)
 
 
 @six.add_metaclass(ManualFileMetaClass)
 class TestFlake8Stdin(Flake8CaseBase):
 
-    def run_test(self, positions, tree, filename):
+    def run_test(self, positions, tree, filename, content, options):
         """Test using stdin."""
-        with open(filename, 'rb') as f:
-            content = f.read()
-        super(TestFlake8Stdin, self).run_test(positions, None, content)
+        parameters = []
+        if options['raw']:
+            parameters += ['--check-raw-strings']
+        super(TestFlake8Stdin, self).run_test(positions, None, content, parameters)
 
 
 if __name__ == '__main__':

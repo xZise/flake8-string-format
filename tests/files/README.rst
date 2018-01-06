@@ -21,9 +21,16 @@ There variables are defined as follow:
   defaults to `1` then (the line below).
 * After that a list of errors must follow separated by commas.
 * `AAA`, `CCC`: The exact error codes that are expected.
-* `B`, `D`: The indentation that is expected.
+* `B`, `D`: The indentation that is expected as well as a list of filters.
   If omitted it defaults to the location of the first occurrence of either `"`,
   `'` or `str.format` in the line the error belongs to.
+
+The following filters are available:
+
+* `raw`: It applies only when `check_raw` is `True`
+* `>PY26`: It applies only when used on Python 2.7 or newer
+
+Multiple filters can be chained together by separated them with commas.
 
 Examples
 ````````
@@ -36,5 +43,5 @@ Examples
 
   print("Hello {0}".format())
 
-  # Error: P201
+  # Error: P201 (raw)
   print(r"Hello {0}".format())

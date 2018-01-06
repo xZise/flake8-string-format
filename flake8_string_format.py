@@ -7,11 +7,25 @@ import ast
 import itertools
 import re
 import sys
+import token
+import optparse
 
 from string import Formatter
 
+import flake8
 
 __version__ = '0.3.0.dev0'
+
+
+if sys.version_info[0] < 3:
+    def generate_tokens(readline):
+        from collections import namedtuple
+        from tokenize import generate_tokens
+        Token = namedtuple('Token', 'type string start end line')
+        return (Token(*single_token)
+                for single_token in generate_tokens(readline))
+else:
+    from tokenize import generate_tokens
 
 
 class TextVisitor(ast.NodeVisitor):
@@ -105,6 +119,7 @@ class StringFormatChecker(object):
 
     version = __version__
     name = 'flake8-string-format'
+    check_raw = False
 
     ERRORS = {
         101: 'format string does contain unindexed parameters',
@@ -119,12 +134,47 @@ class StringFormatChecker(object):
         302: 'format call provides unused keyword ({kw})',
     }
 
-    def __init__(self, tree, filename):
+    def __init__(self, tree, lines):
         self.tree = tree
+        if lines is None:
+            self.tokens = None
+        else:
+            self.tokens = dict((single_token.start, single_token.string)
+                               for single_token in self.generate_tokens(lines)
+                               if single_token.type == token.STRING)
 
-    def _generate_unindexed(self, node):
-        return self._generate_error(
-            node, 102 if node.is_docstring else 103)
+    @staticmethod
+    def generate_tokens(lines):
+        line_iter = iter(lines)
+        return list(generate_tokens(lambda: next(line_iter)))
+
+    @classmethod
+    def add_options(cls, parser):
+        class OptionWrapper():
+
+            original = parser
+
+            def add_option(self, *args, **kwargs):
+                try:
+                    self.original.add_option(*args, **kwargs)
+                except (optparse.OptionError, TypeError):
+                    use_config = kwargs.pop('parse_from_config', False)
+                    option = self.original.add_option(*args, **kwargs)
+                    if use_config:
+                        # Flake8 2.x uses config_options instead of the
+                        # 'parse_from_config' parameter
+                        self.original.config_options.append(
+                            option.get_opt_string().lstrip('-'))
+
+        # Support Flake8 3.x feature in Flake 2.x
+        parser = OptionWrapper()
+        parser.add_option(
+            '--check-raw-strings', action='store_true', parse_from_config=True,
+            help='Also verify raw strings (r".")')
+
+    @classmethod
+    def parse_options(cls, options):
+        cls.check_raw = options.check_raw_strings
 
     def _generate_error(self, node, code, **params):
         if sys.version_info[:3] == (3, 4, 2) and isinstance(node, ast.Call):
@@ -174,8 +224,19 @@ class StringFormatChecker(object):
                 if node in visitor.calls:
                     assert not node.is_docstring
                     yield self._generate_error(node, 101)
+                elif node.is_docstring:
+                    yield self._generate_error(node, 102)
                 else:
-                    yield self._generate_unindexed(node)
+                    if self.tokens is not None:
+                        text_token = self.tokens[(node.lineno, node.col_offset)]
+                        # Use last character as the quote character
+                        quote_start = text_token.index(text_token[-1])
+                        prefixes = set(text_token[:quote_start])
+                    else:
+                        prefixes = set()
+                    # Do handle "other" raw strings only when enabled
+                    if "r" not in prefixes or self.check_raw:
+                        yield self._generate_error(node, 103)
 
             if node in visitor.calls:
                 call, str_args = visitor.calls[node]
@@ -247,3 +308,22 @@ class StringFormatChecker(object):
 
                 if implicit and explicit:
                     yield self._generate_error(call, 205)
+
+
+class StringFormatCheckerOwnTokens(StringFormatChecker):
+
+    """Implement reading tokens manually for Flake8 2.x."""
+
+    def __init__(self, tree, filename):
+        from flake8.engine import pep8
+
+        if filename is None or filename in ('-', 'stdin'):
+            lines = pep8.stdin_get_value().splitlines(True)
+        else:
+            lines = pep8.readlines(filename)
+
+        super(StringFormatCheckerOwnTokens, self).__init__(tree, lines)
+
+
+if getattr(flake8, '__version_info__', (2, 0))[:3] < (3,):
+    StringFormatChecker = StringFormatCheckerOwnTokens
