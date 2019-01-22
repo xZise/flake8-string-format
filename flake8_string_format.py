@@ -201,7 +201,7 @@ class StringFormatChecker(Flake8Argparse):
         101: 'format string does contain unindexed parameters',
         102: 'docstring does contain unindexed parameters',
         103: 'other string does contain unindexed parameters',
-        201: 'format call uses to large index ({idx})',
+        201: 'format call uses too large index ({idx})',
         202: 'format call uses missing keyword ({kw})',
         203: 'format call uses keyword arguments but no named entries',
         204: 'format call uses variable arguments but no numbered entries',
