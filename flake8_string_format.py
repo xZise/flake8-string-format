@@ -203,17 +203,16 @@ class StringFormatChecker(object):
                     has_kwargs = bool(call.kwargs)
                     has_starargs = bool(call.starargs)
                 else:
+                    # With Python version 3.5 the location and number of
+                    # kwargs/starargs has been relaxed
                     has_kwargs = None in keywords
                     has_starargs = sum(1 for arg in call.args
                                        if isinstance(arg, ast.Starred))
-                    # TODO: Determine when Starred is not at the end, so make sure we know about it!
-                    assert has_starargs <= 1
-                    assert not has_starargs or isinstance(call.args[-1], ast.Starred)
 
                     if has_kwargs:
                         keywords.discard(None)
                     if has_starargs:
-                        num_args -= 1
+                        num_args -= has_starargs
 
                 # if starargs or kwargs is not None, it can't count the
                 # parameters but at least check if the args are used
