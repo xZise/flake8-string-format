@@ -4,6 +4,8 @@ python:
   - "3.4"
   - "3.5"
   - "3.6"
+  - "3.7"
+  - "3.8"
   - "nightly"
 
 env:
@@ -11,10 +13,6 @@ env:
 
 matrix:
   include:
-    - python: "2.6"
-      env: FLAKE8_VERSION=">=2.6,<3"
-    - python: "3.3"
-      env: FLAKE8_VERSION=">=2.6,<3"
     - python: "2.7"
       env: FLAKE8_VERSION=">=2.6,<3"
     - python: "3.5"
@@ -23,7 +21,6 @@ matrix:
 script:
   - pip install flake8$FLAKE8_VERSION
   - python setup.py develop
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.6" ]]; then pip install unittest2 ; fi
   - python setup.py test
   - if [[ "$TRAVIS_PYTHON_VERSION" != "nightly" ]]; then coverage run setup.py test ; fi
 
