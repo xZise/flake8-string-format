@@ -171,10 +171,11 @@ class ManualFileMetaClass(type):
         prefix = os.path.join('tests', 'files')
         for filename in os.listdir(prefix):
             if filename[-3:] == '.py':
-                assert re.match(r"^[A-Za-z]*\.py", filename)
+                assert re.match(r"^[A-Za-z]+[A-Za-z0-9_]*\.py", filename)
                 test = cls._create_tests(prefix, filename)
-                assert test.__name__ not in dct
-                dct[test.__name__] = test
+                if not test is None:
+                    assert test.__name__ not in dct
+                    dct[test.__name__] = test
 
         return super(ManualFileMetaClass, cls).__new__(cls, name, bases, dct)
 
@@ -195,6 +196,31 @@ class ManualFileMetaClass(type):
             content = f.read()
         all_positions = []
         lines = content.splitlines()
+
+        # Read first line of file to check Python version conditions
+        m = re.match(r"^\s*#\s*Python(.*)", lines[0])
+        if m:
+            checks = []
+            # Right header found, now check conditions
+            for comp, v_major, v_minor in re.findall(r"\s+([<>=]=?)(\d+)\.(\d+)", m.group(1)):
+                version = (int(v_major), int(v_minor))
+                sys_version = sys.version_info[:2]
+                if comp == "=" or comp == "==":
+                    comparision = lambda: sys_version == version
+                elif comp == ">":
+                    comparision = lambda: sys_version > version
+                elif comp == "<":
+                    comparision = lambda: sys_version < version
+                elif comp == ">=":
+                    comparision = lambda: sys_version >= version
+                elif comp == "<=":
+                    comparision = lambda: sys_version <= version
+                checks += [comparision]
+
+            if not all(f() for f in checks):
+                return None
+
+
         for no, line in enumerate(lines):
             match = cls._ERROR_REGEX.match(line)
             if match:
