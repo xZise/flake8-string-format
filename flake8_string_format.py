@@ -11,7 +11,7 @@ import sys
 from string import Formatter
 
 
-__version__ = '0.3.0.dev0'
+__version__ = '0.3.0'
 
 
 class TextVisitor(ast.NodeVisitor):

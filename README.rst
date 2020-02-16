@@ -1,7 +1,7 @@
 String format parameter checker
 ===============================
 
-.. image:: https://travis-ci.org/xZise/flake8-string-format.svg?branch=0.2.2
+.. image:: https://travis-ci.org/xZise/flake8-string-format.svg?branch=0.3.0
    :alt: Build Status
    :target: https://travis-ci.org/xZise/flake8-string-format
 
@@ -67,7 +67,7 @@ This plugin is using the following error codes:
 +------+-------------------------------------------------------------+
 | Missing values in the parameters                                   |
 +------+-------------------------------------------------------------+
-| P201 | format call uses to large index (INDEX)                     |
+| P201 | format call uses too large index (INDEX)                    |
 +------+-------------------------------------------------------------+
 | P202 | format call uses missing keyword (KEYWORD)                  |
 +------+-------------------------------------------------------------+
@@ -121,9 +121,10 @@ allowed, this plugin won't cause false positives.
 
 Changes
 -------
-0.3.0 - ????-??-??
+0.3.0 - 2020-02-16
 ``````````````````
-* Removed support for standalone version
+* Removed support for standalone version.
+* Support multiple starargs and at any location.
 
 0.2.3 - 2016-07-27
 ``````````````````
