@@ -62,11 +62,11 @@ def generate_code():
             if not variant[2] and not variant[0].strip().startswith('#') and use_format in working_formats:
                 column = len(variant[0])
                 if PY26:
-                    expected_code = 'P301'
+                    expected_code = 'STRF301'
                     if use_format == 3:
                         column -= len('str.format(')
                 else:
-                    expected_code = 'P101' if use_format > 1 else 'P103'
+                    expected_code = 'STRF101' if use_format > 1 else 'STRF103'
                 positions += [(len(code), column, expected_code)]
     return '\n'.join(code), positions
 
@@ -164,7 +164,7 @@ class TestSimple(SimpleImportTestCase):
 
 class ManualFileMetaClass(type):
 
-    _SINGLE_REGEX = re.compile(r'(P\d\d\d)(?: +\((\d+)\))?')
+    _SINGLE_REGEX = re.compile(r'(STRF\d\d\d)(?: +\((\d+)\))?')
     _ERROR_REGEX = re.compile(r'^ *# Error(?:\(\+(\d+)\))?: (.*)$')
 
     def __new__(cls, name, bases, dct):
@@ -282,7 +282,7 @@ class Flake8CaseBase(OutputTestCase):
             expected_filename = 'stdin'
             filename = '-'
             stdin = PIPE
-        p = Popen(['flake8', '--select=P', filename], env=env,
+        p = Popen(['flake8', '--select=STRF', filename], env=env,
                   stdin=stdin, stdout=PIPE, stderr=PIPE)
         # TODO: Add possibility for timeout
         stdout, stderr = p.communicate(input=content)
