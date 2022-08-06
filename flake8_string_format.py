@@ -57,8 +57,12 @@ class TextVisitor(ast.NodeVisitor):
 
     @staticmethod
     def _mark_as_static(node):
-        if isinstance(node, ast.Constant):
-            node.is_const = True
+        if sys.version_info[:2] < (3, 8):
+            if isinstance(node, ast.Str) or isinstance(node, ast.Bytes):
+                node.is_const = True
+        else:
+            if isinstance(node, ast.Constant):
+                node.is_const = True
 
     def visit_Compare(self, node):
         # Mark constants of every step as constant
