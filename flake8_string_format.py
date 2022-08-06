@@ -29,6 +29,8 @@ class TextVisitor(ast.NodeVisitor):
         self.calls = {}
 
     def _add_node(self, node):
+        if getattr(node, 'is_const', False):
+            return
         if not hasattr(node, 'is_docstring'):
             node.is_docstring = False
         self.nodes += [node]
@@ -52,6 +54,18 @@ class TextVisitor(ast.NodeVisitor):
     def visit_Constant(self, node):
         if type(node.value) in (str, bytes):
             self._add_node(node)
+
+    @staticmethod
+    def _mark_as_static(node):
+        if isinstance(node, ast.Constant):
+            node.is_const = True
+
+    def visit_Compare(self, node):
+        # Mark constants of every step as constant
+        TextVisitor._mark_as_static(node.left)
+        for right in node.comparators:
+            TextVisitor._mark_as_static(right)
+        self.generic_visit(node)
 
     def _visit_definition(self, node):
         # Manually traverse class or function definition
