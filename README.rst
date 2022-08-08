@@ -1,9 +1,9 @@
 String format parameter checker
 ===============================
 
-.. image:: https://travis-ci.org/xZise/flake8-string-format.svg?branch=0.3.0
+.. image:: https://github.com/xZise/flake8-string-format/actions/workflows/main.yml/badge.svg?branch=master
    :alt: Build Status
-   :target: https://travis-ci.org/xZise/flake8-string-format
+   :target: https://github.com/xZise/flake8-string-format/actions
 
 .. image:: http://codecov.io/github/xZise/flake8-string-format/coverage.svg?branch=master
    :alt: Coverage Status

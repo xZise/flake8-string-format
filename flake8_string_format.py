@@ -40,10 +40,18 @@ class TextVisitor(ast.NodeVisitor):
         return isinstance(node, typ)
 
     def visit_Str(self, node):
+        # Constant with Python 3.8 uses the value-property
+        node.value = node.s
         self._add_node(node)
 
     def visit_Bytes(self, node):
+        # Constant with Python 3.8 uses the value-property
+        node.value = node.s
         self._add_node(node)
+
+    def visit_Constant(self, node):
+        if type(node.value) in (str, bytes):
+            self._add_node(node)
 
     def _visit_definition(self, node):
         # Manually traverse class or function definition
@@ -162,7 +170,7 @@ class StringFormatChecker(object):
         visitor.visit(self.tree)
         assert not (set(visitor.calls) - set(visitor.nodes))
         for node in visitor.nodes:
-            text = node.s
+            text = node.value
             if sys.version_info[0] > 2 and isinstance(text, bytes):
                 try:
                     # TODO: Maybe decode using file encoding?
