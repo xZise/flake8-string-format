@@ -13,7 +13,7 @@ Error annotation
 
 To define that a certain line has an issue the following format must be used::
 
-  # Error(+X): STRFAAA (B), STRFCCC (D),…
+  # Error(+X): FMTAAA (B), FMTCCC (D),…
 
 There variables are defined as follow:
 
@@ -29,12 +29,12 @@ Examples
 ````````
 ::
 
-  # Error: STRF301
+  # Error: FMT301
   print("Hello {0}".format("World", "you"))
 
-  # Error(+2): STRF201
+  # Error(+2): FMT201
 
   print("Hello {0}".format())
 
-  # Error: STRF201
+  # Error: FMT201
   print(r"Hello {0}".format())
