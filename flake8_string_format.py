@@ -139,7 +139,7 @@ class StringFormatChecker(object):
             # Due to https://bugs.python.org/issue21295 we cannot use the
             # Call object
             node = node.func.value
-        msg = 'P{0} {1}'.format(code, self.ERRORS[code])
+        msg = 'FMT{0} {1}'.format(code, self.ERRORS[code])
         msg = msg.format(**params)
         return node.lineno, node.col_offset, msg, type(self)
 

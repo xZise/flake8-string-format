@@ -39,9 +39,9 @@ Via ``--ignore`` it's possible to ignore unindexed parameters::
 
   $ flake8 some_file.py
   ...
-  some_file.py:1:1: P101 format string does contain unindexed parameters
+  some_file.py:1:1: FMT101 format string does contain unindexed parameters
 
-  $ flake8 --ignore P101 some_file.py
+  $ flake8 --ignore FMT101 some_file.py
   ...
 
 
@@ -56,33 +56,33 @@ Error codes
 
 This plugin is using the following error codes:
 
-+--------------------------------------------------------------------+
-| Presence of implicit parameters                                    |
-+------+-------------------------------------------------------------+
-| P101 | format string does contain unindexed parameters             |
-+------+-------------------------------------------------------------+
-| P102 | docstring does contain unindexed parameters                 |
-+------+-------------------------------------------------------------+
-| P103 | other string does contain unindexed parameters              |
-+------+-------------------------------------------------------------+
-| Missing values in the parameters                                   |
-+------+-------------------------------------------------------------+
-| P201 | format call uses too large index (INDEX)                    |
-+------+-------------------------------------------------------------+
-| P202 | format call uses missing keyword (KEYWORD)                  |
-+------+-------------------------------------------------------------+
-| P203 | format call uses keyword arguments but no named entries     |
-+------+-------------------------------------------------------------+
-| P204 | format call uses variable arguments but no numbered entries |
-+------+-------------------------------------------------------------+
-| P205 | format call uses implicit and explicit indexes together     |
-+------+-------------------------------------------------------------+
-| Unused values in the parameters                                    |
-+------+-------------------------------------------------------------+
-| P301 | format call provides unused index (INDEX)                   |
-+------+-------------------------------------------------------------+
-| P302 | format call provides unused keyword (KEYWORD)               |
-+------+-------------------------------------------------------------+
++----------------------------------------------------------------------+
+| Presence of implicit parameters                                      |
++------+---------------------------------------------------------------+
+| FMT101 | format string does contain unindexed parameters             |
++------+---------------------------------------------------------------+
+| FMT102 | docstring does contain unindexed parameters                 |
++------+---------------------------------------------------------------+
+| FMT103 | other string does contain unindexed parameters              |
++------+---------------------------------------------------------------+
+| Missing values in the parameters                                     |
++------+---------------------------------------------------------------+
+| FMT201 | format call uses too large index (INDEX)                    |
++------+---------------------------------------------------------------+
+| FMT202 | format call uses missing keyword (KEYWORD)                  |
++------+---------------------------------------------------------------+
+| FMT203 | format call uses keyword arguments but no named entries     |
++------+---------------------------------------------------------------+
+| FMT204 | format call uses variable arguments but no numbered entries |
++------+---------------------------------------------------------------+
+| FMT205 | format call uses implicit and explicit indexes together     |
++------+---------------------------------------------------------------+
+| Unused values in the parameters                                      |
++------+---------------------------------------------------------------+
+| FMT301 | format call provides unused index (INDEX)                   |
++------+---------------------------------------------------------------+
+| FMT302 | format call provides unused keyword (KEYWORD)               |
++------+---------------------------------------------------------------+
 
 
 Operation
@@ -92,9 +92,9 @@ The plugin will go through all ``bytes``, ``str`` and ``unicode`` instances. If
 it encounters ``bytes`` instances on Python 3, it'll decode them using ASCII and
 if that fails it'll skip that entry.
 
-The strings are basically sorted into three types corresponding to the P1XX
+The strings are basically sorted into three types corresponding to the FMT1XX
 range. Only the format string can cause all errors while any other string can
-only cause the corresponding P1XX error.
+only cause the corresponding FMT1XX error.
 
 For this plugin all strings which are the first expression of the module or
 after a function or class definition are considered docstrings.
@@ -102,8 +102,8 @@ after a function or class definition are considered docstrings.
 If the ``format`` method is used on a string or ``str.format`` with the string
 as the first parameter, it will consider this a format string and will analyze
 the parameters of that call. If that call uses variable arguments, it cannot
-issue P201 and P202 as missing entries might be hidden in those variable
-arguments. P301 and P302 can still be checked for any argument which is defined
+issue FMT201 and FMT202 as missing entries might be hidden in those variable
+arguments. FMT301 and FMT302 can still be checked for any argument which is defined
 statically.
 
 
@@ -112,8 +112,8 @@ Python 2.6 support
 
 Python 2.6 is only partially supported as it's using Python's capability to
 format a string. So if a string contains implicit parameters, it won't be
-detected as a parameter on Python 2.6 and thus it won't cause any P1XX errors.
-But it might still cause an error P301 when variable arguments aren't used.
+detected as a parameter on Python 2.6 and thus it won't cause any FMT1XX errors.
+But it might still cause an error FMT301 when variable arguments aren't used.
 
 So if Python 2.6 compatibility is wished and thus implicit parameters aren't
 allowed, this plugin won't cause false positives.

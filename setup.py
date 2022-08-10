@@ -31,7 +31,7 @@ setup(
     zip_safe=False,
     entry_points={
         'flake8.extension': [
-            'P = flake8_string_format:StringFormatChecker',
+            'FMT = flake8_string_format:StringFormatChecker',
         ],
     },
     tests_require=['six'],
