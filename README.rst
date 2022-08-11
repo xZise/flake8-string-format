@@ -58,31 +58,31 @@ This plugin is using the following error codes:
 
 +----------------------------------------------------------------------+
 | Presence of implicit parameters                                      |
-+------+---------------------------------------------------------------+
++--------+-------------------------------------------------------------+
 | FMT101 | format string does contain unindexed parameters             |
-+------+---------------------------------------------------------------+
++--------+-------------------------------------------------------------+
 | FMT102 | docstring does contain unindexed parameters                 |
-+------+---------------------------------------------------------------+
++--------+-------------------------------------------------------------+
 | FMT103 | other string does contain unindexed parameters              |
-+------+---------------------------------------------------------------+
++--------+-------------------------------------------------------------+
 | Missing values in the parameters                                     |
-+------+---------------------------------------------------------------+
++--------+-------------------------------------------------------------+
 | FMT201 | format call uses too large index (INDEX)                    |
-+------+---------------------------------------------------------------+
++--------+-------------------------------------------------------------+
 | FMT202 | format call uses missing keyword (KEYWORD)                  |
-+------+---------------------------------------------------------------+
++--------+-------------------------------------------------------------+
 | FMT203 | format call uses keyword arguments but no named entries     |
-+------+---------------------------------------------------------------+
++--------+-------------------------------------------------------------+
 | FMT204 | format call uses variable arguments but no numbered entries |
-+------+---------------------------------------------------------------+
++--------+-------------------------------------------------------------+
 | FMT205 | format call uses implicit and explicit indexes together     |
-+------+---------------------------------------------------------------+
++--------+-------------------------------------------------------------+
 | Unused values in the parameters                                      |
-+------+---------------------------------------------------------------+
++--------+-------------------------------------------------------------+
 | FMT301 | format call provides unused index (INDEX)                   |
-+------+---------------------------------------------------------------+
++--------+-------------------------------------------------------------+
 | FMT302 | format call provides unused keyword (KEYWORD)               |
-+------+---------------------------------------------------------------+
++--------+-------------------------------------------------------------+
 
 
 Operation
@@ -92,18 +92,24 @@ The plugin will go through all ``bytes``, ``str`` and ``unicode`` instances. If
 it encounters ``bytes`` instances on Python 3, it'll decode them using ASCII and
 if that fails it'll skip that entry.
 
-The strings are basically sorted into three types corresponding to the FMT1XX
-range. Only the format string can cause all errors while any other string can
-only cause the corresponding FMT1XX error.
+Depending on the usage the string is handled differently. When it is not being
+formatted, it can only cause ``FMT102`` and ``FMT103``. For this plugin all
+strings which are the first expression of the module or after a function or
+class definition are considered docstrings.
 
-For this plugin all strings which are the first expression of the module or
-after a function or class definition are considered docstrings.
+Both ``FMT102`` and ``FMT103`` issue many false positives and should only be
+used with Python 2.6 which does not support `unindexed parameters
+<https://docs.python.org/3/whatsnew/2.7.html#other-language-changes>`_.
 
-If the ``format`` method is used on a string or ``str.format`` with the string
-as the first parameter, it will consider this a format string and will analyze
-the parameters of that call. If that call uses variable arguments, it cannot
-issue FMT201 and FMT202 as missing entries might be hidden in those variable
-arguments. FMT301 and FMT302 can still be checked for any argument which is defined
+Format strings
+``````````````
+Every string where either the ``format`` method is called or where it is the
+first parameter of ``str.format``, is considered a format string and cause the
+higher numbers.
+
+If that call to ``format`` uses variable arguments, it cannot issue FMT201 and
+FMT202 as missing entries might be hidden in those variable arguments.
+FMT301 and FMT302 can still be checked for any argument which is defined
 statically.
 
 
