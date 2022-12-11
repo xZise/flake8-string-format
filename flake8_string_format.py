@@ -115,13 +115,13 @@ class StringFormatChecker(object):
     name = 'flake8-string-format'
 
     ERRORS = {
-        101: 'format string does contain unindexed parameters',
-        102: 'docstring does contain unindexed parameters',
-        103: 'other string does contain unindexed parameters',
-        201: 'format call uses too large index ({idx})',
+        101: 'format string contains unindexed parameters',
+        102: 'docstring contains unindexed parameters',
+        103: 'other string contains unindexed parameters',
+        201: 'format call index too large ({idx})',
         202: 'format call uses missing keyword ({kw})',
-        203: 'format call uses keyword arguments but no named entries',
-        204: 'format call uses variable arguments but no numbered entries',
+        203: 'format call uses keyword arguments but there are no keyword entries',
+        204: 'format call uses indexed arguments but there are no indexed entries',
         205: 'format call uses implicit and explicit indexes together',
         301: 'format call provides unused index ({idx})',
         302: 'format call provides unused keyword ({kw})',

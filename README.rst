@@ -56,33 +56,33 @@ Error codes
 
 This plugin is using the following error codes:
 
-+----------------------------------------------------------------------+
-| Presence of implicit parameters                                      |
-+--------+-------------------------------------------------------------+
-| FMT101 | format string does contain unindexed parameters             |
-+--------+-------------------------------------------------------------+
-| FMT102 | docstring does contain unindexed parameters                 |
-+--------+-------------------------------------------------------------+
-| FMT103 | other string does contain unindexed parameters              |
-+--------+-------------------------------------------------------------+
-| Missing values in the parameters                                     |
-+--------+-------------------------------------------------------------+
-| FMT201 | format call uses too large index (INDEX)                    |
-+--------+-------------------------------------------------------------+
-| FMT202 | format call uses missing keyword (KEYWORD)                  |
-+--------+-------------------------------------------------------------+
-| FMT203 | format call uses keyword arguments but no named entries     |
-+--------+-------------------------------------------------------------+
-| FMT204 | format call uses variable arguments but no numbered entries |
-+--------+-------------------------------------------------------------+
-| FMT205 | format call uses implicit and explicit indexes together     |
-+--------+-------------------------------------------------------------+
-| Unused values in the parameters                                      |
-+--------+-------------------------------------------------------------+
-| FMT301 | format call provides unused index (INDEX)                   |
-+--------+-------------------------------------------------------------+
-| FMT302 | format call provides unused keyword (KEYWORD)               |
-+--------+-------------------------------------------------------------+
++--------+---------------------------------------------------------------------+
+| Presence of implicit parameters                                              |
++--------+---------------------------------------------------------------------+
+| FMT101 | format string contains unindexed parameters                         |
++--------+---------------------------------------------------------------------+
+| FMT102 | docstring contains unindexed parameters                             |
++--------+---------------------------------------------------------------------+
+| FMT103 | other string contains unindexed parameters                          |
++--------+---------------------------------------------------------------------+
+| Missing values in the parameters                                             |
++--------+---------------------------------------------------------------------+
+| FMT201 | format call index too large (INDEX)                                 |
++--------+---------------------------------------------------------------------+
+| FMT202 | format call uses missing keyword (KEYWORD)                          |
++--------+---------------------------------------------------------------------+
+| FMT203 | format call uses keyword arguments but there are no keyword entries |
++--------+---------------------------------------------------------------------+
+| FMT204 | format call uses indexed arguments but there are no indexed entries |
++--------+---------------------------------------------------------------------+
+| FMT205 | format call uses implicit and explicit indexes together             |
++--------+---------------------------------------------------------------------+
+| Unused values in the parameters                                              |
++--------+---------------------------------------------------------------------+
+| FMT301 | format call provides unused index (INDEX)                           |
++--------+---------------------------------------------------------------------+
+| FMT302 | format call provides unused keyword (KEYWORD)                       |
++--------+---------------------------------------------------------------------+
 
 
 Operation
