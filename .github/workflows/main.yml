@@ -8,14 +8,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest]
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
         include:
-          - os: ubuntu-latest
-          - os: ubuntu-18.04
-            flake: ==3.8
-            python-version: 3.4
-          - flake: ==3.9
-            python-version: 2.7
+          - os: ubuntu-22.04
+            flake: ==6.1
+            python-version: 3.9
+          - flake: ==7.3
+            os: ubuntu-latest
+            python-version: 3.14
 
     steps:
       - uses: actions/checkout@v3
