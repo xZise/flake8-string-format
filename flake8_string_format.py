@@ -34,20 +34,20 @@ class TextVisitor(ast.NodeVisitor):
         self.nodes += [node]
 
     def is_base_string(self, node):
-        typ = (ast.Str,)
-        if sys.version_info[0] > 2:
-            typ += (ast.Bytes,)
+        typ = (ast.Constant,)
+        #if sys.version_info[0] > 2:
+        #    typ += (ast.Bytes,)
         return isinstance(node, typ)
 
-    def visit_Str(self, node):
-        # Constant with Python 3.8 uses the value-property
-        node.value = node.s
-        self._add_node(node)
+    # def visit_Constant(self, node):
+    #     # Constant with Python 3.8 uses the value-property
+    #     node.value = node.s
+    #     self._add_node(node)
 
-    def visit_Bytes(self, node):
-        # Constant with Python 3.8 uses the value-property
-        node.value = node.s
-        self._add_node(node)
+    # def visit_Bytes(self, node):
+    #     # Constant with Python 3.8 uses the value-property
+    #     node.value = node.s
+    #     self._add_node(node)
 
     def visit_Constant(self, node):
         if type(node.value) in (str, bytes):
