@@ -19,7 +19,7 @@ else:
 from collections import defaultdict
 from subprocess import Popen, PIPE
 
-import six
+#import six
 
 import flake8_string_format
 
@@ -248,8 +248,8 @@ class ManualFileMetaClass(type):
         return defaults
 
 
-@six.add_metaclass(ManualFileMetaClass)
-class TestManualFiles(SimpleImportTestCase):
+#@six.add_metaclass(ManualFileMetaClass)
+class TestManualFiles(SimpleImportTestCase, metaclass=ManualFileMetaClass):
 
     """Test the manually created files in tests/files/."""
 
@@ -289,13 +289,14 @@ class Flake8CaseBase(OutputTestCase):
 
         stdout_lines = stdout.decode('utf8').splitlines()
 
+        print(stderr)
         self.assertEqual(stderr, b'')
         self.compare_results(
             self.iterator(stdout_lines, expected_filename), positions)
 
 
-@six.add_metaclass(ManualFileMetaClass)
-class TestFlake8Files(Flake8CaseBase):
+#@six.add_metaclass(ManualFileMetaClass)
+class TestFlake8Files(Flake8CaseBase, metaclass=ManualFileMetaClass):
 
     def run_test(self, positions, tree, filename):
         """Test using stdin."""
@@ -308,8 +309,8 @@ class TestFlake8StdinDynamic(Flake8CaseBase):
         self.run_test(dynamic_positions, None, dynamic_code.encode('utf8'))
 
 
-@six.add_metaclass(ManualFileMetaClass)
-class TestFlake8Stdin(Flake8CaseBase):
+#@six.add_metaclass(ManualFileMetaClass)
+class TestFlake8Stdin(Flake8CaseBase, metaclass=ManualFileMetaClass):
 
     def run_test(self, positions, tree, filename):
         """Test using stdin."""
