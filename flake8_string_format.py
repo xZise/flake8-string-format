@@ -11,9 +11,6 @@ import sys
 from string import Formatter
 
 
-__version__ = '0.3.0'
-
-
 class TextVisitor(ast.NodeVisitor):
 
     """
@@ -120,7 +117,6 @@ class StringFormatChecker(object):
     _FORMATTER = Formatter()
     FIELD_REGEX = re.compile(r'^((?:\s|.)*?)(\..*|\[.*\])?$')
 
-    version = __version__
     name = 'flake8-string-format'
 
     ERRORS = {

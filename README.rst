@@ -127,6 +127,11 @@ allowed, this plugin won't cause false positives.
 
 Changes
 -------
+0.4.0 - 2026-06-09
+``````````````````
+* Fix support for Python version 3.14
+* Improve error message wording
+
 0.3.0 - 2020-02-16
 ``````````````````
 * Removed support for standalone version.
