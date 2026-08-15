@@ -1,20 +1,9 @@
-from __future__ import print_function
-
 import ast
-import codecs
 import itertools
-import optparse
 import os
 import re
 import sys
-import tempfile
-
-PY26 = sys.version_info[:2] == (2, 6)
-
-if PY26:
-    import unittest2 as unittest
-else:
-    import unittest
+import unittest
 
 from collections import defaultdict
 from subprocess import Popen, PIPE
@@ -25,14 +14,11 @@ import flake8_string_format
 
 
 def generate_code():
-    if PY26:
-        working_formats = [2, 3]
-    else:
-        working_formats = [1, 2, 3]
+    working_formats = [1, 2, 3]
     code = ['#!/usr/bin/python', '# -*- coding: utf-8 -*-', 'dummy = "line"']
     positions = []
     for variant in itertools.product(
-            ['', '#', '    '], ['', 'u', 'b'], ['', '0', 'param'], ['', ':03'],
+            ['', '#', '    '], ['', 'b'], ['', '0', 'param'], ['', ':03'],
             ['', 'Before'], ['', 'After']):
         variant = list(variant)
         indented = variant[0].startswith(' ')
@@ -61,12 +47,7 @@ def generate_code():
             code += ['{0}{1}"{4}{{{2}{3}}}{5}"{fmt}'.format(*variant, fmt=fmt_code)]
             if not variant[2] and not variant[0].strip().startswith('#') and use_format in working_formats:
                 column = len(variant[0])
-                if PY26:
-                    expected_code = 'FMT301'
-                    if use_format == 3:
-                        column -= len('str.format(')
-                else:
-                    expected_code = 'FMT101' if use_format > 1 else 'FMT103'
+                expected_code = 'FMT101' if use_format > 1 else 'FMT103'
                 positions += [(len(code), column, expected_code)]
     return '\n'.join(code), positions
 
@@ -177,7 +158,7 @@ class ManualFileMetaClass(type):
                     assert test.__name__ not in dct
                     dct[test.__name__] = test
 
-        return super(ManualFileMetaClass, cls).__new__(cls, name, bases, dct)
+        return super().__new__(cls, name, bases, dct)
 
     @classmethod
     def _create_tests(cls, directory, filename):
@@ -192,7 +173,7 @@ class ManualFileMetaClass(type):
 
         only_filename = filename
         filename = os.path.join(directory, filename)
-        with codecs.open(filename, 'r', 'utf8') as f:
+        with open(filename, 'r', encoding='utf8') as f:
             content = f.read()
         all_positions = []
         lines = content.splitlines()
@@ -299,7 +280,7 @@ class TestFlake8Files(Flake8CaseBase):
 
     def run_test(self, positions, tree, filename):
         """Test using stdin."""
-        super(TestFlake8Files, self).run_test(positions, filename, None)
+        super().run_test(positions, filename, None)
 
 
 class TestFlake8StdinDynamic(Flake8CaseBase):
@@ -315,7 +296,7 @@ class TestFlake8Stdin(Flake8CaseBase):
         """Test using stdin."""
         with open(filename, 'rb') as f:
             content = f.read()
-        super(TestFlake8Stdin, self).run_test(positions, None, content)
+        super().run_test(positions, None, content)
 
 
 if __name__ == '__main__':

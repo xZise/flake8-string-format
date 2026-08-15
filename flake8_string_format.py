@@ -1,12 +1,9 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 """Extension for flake8 to test string format usage."""
-from __future__ import print_function, unicode_literals
 
 import ast
 import itertools
 import re
-import sys
 
 from string import Formatter
 
@@ -21,7 +18,7 @@ class TextVisitor(ast.NodeVisitor):
     """
 
     def __init__(self):
-        super(TextVisitor, self).__init__()
+        super().__init__()
         self.nodes = []
         self.calls = {}
 
@@ -109,10 +106,10 @@ class TextVisitor(ast.NodeVisitor):
                     node.func.value.id == 'str' and node.args and
                     self.is_base_string(node.args[0])):
                 self.calls[node.args[0]] = (node, True)
-        super(TextVisitor, self).generic_visit(node)
+        super().generic_visit(node)
 
 
-class StringFormatChecker(object):
+class StringFormatChecker:
 
     _FORMATTER = Formatter()
     FIELD_REGEX = re.compile(r'^((?:\s|.)*?)(\..*|\[.*\])?$')
@@ -140,10 +137,6 @@ class StringFormatChecker(object):
             node, 102 if node.is_docstring else 103)
 
     def _generate_error(self, node, code, **params):
-        if sys.version_info[:3] == (3, 4, 2) and isinstance(node, ast.Call):
-            # Due to https://bugs.python.org/issue21295 we cannot use the
-            # Call object
-            node = node.func.value
         msg = 'FMT{0} {1}'.format(code, self.ERRORS[code])
         msg = msg.format(**params)
         return node.lineno, node.col_offset, msg, type(self)
@@ -176,7 +169,7 @@ class StringFormatChecker(object):
         assert not (set(visitor.calls) - set(visitor.nodes))
         for node in visitor.nodes:
             text = node.value
-            if sys.version_info[0] > 2 and isinstance(text, bytes):
+            if isinstance(text, bytes):
                 try:
                     # TODO: Maybe decode using file encoding?
                     text = text.decode('ascii')
@@ -212,20 +205,14 @@ class StringFormatChecker(object):
                 num_args = len(call.args)
                 if str_args:
                     num_args -= 1
-                if sys.version_info < (3, 5):
-                    has_kwargs = bool(call.kwargs)
-                    has_starargs = bool(call.starargs)
-                else:
-                    # With Python version 3.5 the location and number of
-                    # kwargs/starargs has been relaxed
-                    has_kwargs = None in keywords
-                    has_starargs = sum(1 for arg in call.args
-                                       if isinstance(arg, ast.Starred))
+                has_kwargs = None in keywords
+                has_starargs = sum(1 for arg in call.args
+                                    if isinstance(arg, ast.Starred))
 
-                    if has_kwargs:
-                        keywords.discard(None)
-                    if has_starargs:
-                        num_args -= has_starargs
+                if has_kwargs:
+                    keywords.discard(None)
+                if has_starargs:
+                    num_args -= has_starargs
 
                 # if starargs or kwargs is not None, it can't count the
                 # parameters but at least check if the args are used
