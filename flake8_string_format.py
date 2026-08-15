@@ -95,9 +95,6 @@ class StringFormatChecker:
     name = 'flake8-string-format'
 
     ERRORS = {
-        101: 'format string contains unindexed parameters',
-        102: 'docstring contains unindexed parameters',
-        103: 'other string contains unindexed parameters',
         201: 'format call index too large ({idx})',
         202: 'format call uses missing keyword ({kw})',
         203: 'format call uses keyword arguments but there are no keyword entries',
@@ -109,10 +106,6 @@ class StringFormatChecker:
 
     def __init__(self, tree, filename):
         self.tree = tree
-
-    def _generate_unindexed(self, node):
-        return self._generate_error(
-            node, 102 if node.is_docstring else 103)
 
     def _generate_error(self, node, code, **params):
         msg = 'FMT{0} {1}'.format(code, self.ERRORS[code])
@@ -154,12 +147,6 @@ class StringFormatChecker:
                 except UnicodeDecodeError as e:
                     continue
             fields, implicit, explicit = self.get_fields(text)
-            if implicit:
-                if node in visitor.calls:
-                    assert not node.is_docstring
-                    yield self._generate_error(node, 101)
-                else:
-                    yield self._generate_unindexed(node)
 
             if node in visitor.calls:
                 call, str_args = visitor.calls[node]
