@@ -27,6 +27,6 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip setuptools
-          pip install -e . flake8${{ matrix.flake }} six
+          pip install -e . flake8${{ matrix.flake }}
       - name: Run tests
         run: python -m unittest -v

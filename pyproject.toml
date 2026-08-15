@@ -30,8 +30,6 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/xZise/flake8-string-format"
 
-[project.optional-dependencies]
-test = ["six"]
 
 [project.entry-points."flake8.extension"]
 FMT = "flake8_string_format:StringFormatChecker"
