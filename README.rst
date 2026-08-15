@@ -14,9 +14,7 @@ String format parameter checker
    :target: https://pypi.python.org/pypi/flake8-string-format
 
 An extension for `Flake8 <https://pypi.python.org/pypi/flake8>`_ to check the
-strings and parameters using ``str.format``. It checks all strings whether they
-use numbered parameters with an implicit index which isn't support in
-Python 2.6.
+strings and parameters using ``str.format``.
 
 In all instances of ``'…'.format(…)`` it will also check whether there are
 enough parameters given. If the format call uses variable arguments, it'll just
@@ -32,16 +30,13 @@ is available in ``flake8``::
   $ flake8 --version
   3.0.2 (flake8-string-format: 0.2.3, […]
 
-This plugin supports Flake8 2.6 as well as Flake8 3.0. Older or newer versions
-may be supported too but they weren't tested.
-
 Via ``--ignore`` it's possible to ignore unindexed parameters::
 
   $ flake8 some_file.py
   ...
-  some_file.py:1:1: FMT101 format string does contain unindexed parameters
+  some_file.py:1:1: FMT201 format call index too large (5
 
-  $ flake8 --ignore FMT101 some_file.py
+  $ flake8 --ignore FMT201 some_file.py
   ...
 
 
@@ -56,14 +51,6 @@ Error codes
 
 This plugin is using the following error codes:
 
-+--------+---------------------------------------------------------------------+
-| Presence of implicit parameters                                              |
-+--------+---------------------------------------------------------------------+
-| FMT101 | format string contains unindexed parameters                         |
-+--------+---------------------------------------------------------------------+
-| FMT102 | docstring contains unindexed parameters                             |
-+--------+---------------------------------------------------------------------+
-| FMT103 | other string contains unindexed parameters                          |
 +--------+---------------------------------------------------------------------+
 | Missing values in the parameters                                             |
 +--------+---------------------------------------------------------------------+
@@ -88,18 +75,9 @@ This plugin is using the following error codes:
 Operation
 ---------
 
-The plugin will go through all ``bytes``, ``str`` and ``unicode`` instances. If
+The plugin will go through all ``bytes``, ``str``. If
 it encounters ``bytes`` instances on Python 3, it'll decode them using ASCII and
 if that fails it'll skip that entry.
-
-Depending on the usage the string is handled differently. When it is not being
-formatted, it can only cause ``FMT102`` and ``FMT103``. For this plugin all
-strings which are the first expression of the module or after a function or
-class definition are considered docstrings.
-
-Both ``FMT102`` and ``FMT103`` issue many false positives and should only be
-used with Python 2.6 which does not support `unindexed parameters
-<https://docs.python.org/3/whatsnew/2.7.html#other-language-changes>`_.
 
 Format strings
 ``````````````
@@ -111,18 +89,6 @@ If that call to ``format`` uses variable arguments, it cannot issue FMT201 and
 FMT202 as missing entries might be hidden in those variable arguments.
 FMT301 and FMT302 can still be checked for any argument which is defined
 statically.
-
-
-Python 2.6 support
-``````````````````
-
-Python 2.6 is only partially supported as it's using Python's capability to
-format a string. So if a string contains implicit parameters, it won't be
-detected as a parameter on Python 2.6 and thus it won't cause any FMT1XX errors.
-But it might still cause an error FMT301 when variable arguments aren't used.
-
-So if Python 2.6 compatibility is wished and thus implicit parameters aren't
-allowed, this plugin won't cause false positives.
 
 
 Changes
