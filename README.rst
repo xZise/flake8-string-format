@@ -85,7 +85,7 @@ This plugin is using the following error codes:
 Operation
 ---------
 
-The plugin will go through all ``bytes``, ``str`` and ``unicode`` instances. If
+The plugin will go through all ``bytes``, ``str``. If
 it encounters ``bytes`` instances on Python 3, it'll decode them using ASCII and
 if that fails it'll skip that entry.
 
