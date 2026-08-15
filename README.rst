@@ -32,9 +32,6 @@ is available in ``flake8``::
   $ flake8 --version
   3.0.2 (flake8-string-format: 0.2.3, […]
 
-This plugin supports Flake8 2.6 as well as Flake8 3.0. Older or newer versions
-may be supported too but they weren't tested.
-
 Via ``--ignore`` it's possible to ignore unindexed parameters::
 
   $ flake8 some_file.py
