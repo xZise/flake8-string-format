@@ -28,29 +28,7 @@ class TextVisitor(ast.NodeVisitor):
         self.nodes += [node]
 
     def is_base_string(self, node):
-        # Python 3.14 removed ast.Str/ast.Bytes, but older versions still use
-        # or expose them, so accept modern Constant nodes first and then fall
-        # back to whichever legacy node types still exist on this interpreter.
-        if isinstance(node, ast.Constant):
-            return isinstance(node.value, (str, bytes))
-
-        types = []
-        if hasattr(ast, 'Str'):
-            types.append(ast.Str)
-        if sys.version_info[0] > 2 and hasattr(ast, 'Bytes'):
-            types.append(ast.Bytes)
-
-        return isinstance(node, tuple(types))
-
-    def visit_Str(self, node):
-        # Constant with Python 3.8 uses the value-property
-        node.value = node.s
-        self._add_node(node)
-
-    def visit_Bytes(self, node):
-        # Constant with Python 3.8 uses the value-property
-        node.value = node.s
-        self._add_node(node)
+        return isinstance(node, ast.Constant) and isinstance(node.value, (str, bytes))
 
     def visit_Constant(self, node):
         if type(node.value) in (str, bytes):
